@@ -1,0 +1,19 @@
+{
+    "name": "tasky",
+    "version": "1.0.0",
+    "description": "task manager app",
+    "main": "server/server.js",
+    "scripts": {
+        "start": "node server/server.js",
+        "dev": "cd server && node server.js",
+        "install-all": "cd server && npm install && cd ../client && npm install",
+        "build": "cd client && npm run build",
+        "postinstall": "npm run install-all"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "engines": {
+        "node": ">=18.0.0"
+    }
+}

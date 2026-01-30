@@ -1,0 +1,21 @@
+@keyframes impactJiggle {
+    0% {
+        transform: translateY(0);
+    }
+
+    30% {
+        transform: translateY(-3px);
+    }
+
+    60% {
+        transform: translateY(1px);
+    }
+
+    100% {
+        transform: translateY(0);
+    }
+}
+
+.impact-jiggle {
+    animation: impactJiggle 0.2s ease-out;
+}
