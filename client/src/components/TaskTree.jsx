@@ -63,7 +63,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
     const [contribInput, setContribInput] = useState("")
 
     const fetchContrib = () => {
-        axios.get(`http://localhost:3001/get_contr?task_id=${node.id}`)
+        axios.get(`/api/get_contr?task_id=${node.id}`)
             .then(res => setContributors(res.data.data))
             .catch(err => console.log(err))
     }
@@ -94,7 +94,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
     }
 
     const handleRemContrib = (uid) => {
-        axios.post("http://localhost:3001/rem_contr", { task_id: node.id, user_id: uid })
+        axios.post("/api/rem_contr", { task_id: node.id, user_id: uid })
             .then(() => fetchContrib())
     }
 
@@ -448,7 +448,8 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                         : (
                                             <div style={{
                                                 transition: "color 500ms ease-out",
-                                                color: pressingField === 'description' ? "#f16a50" : "inherit"
+                                                color: pressingField === 'description' ? "#f16a50" : "inherit",
+                                                whiteSpace: "pre-wrap"
                                             }}>
                                                 {node.description || "Add description..."}
                                             </div>
@@ -684,7 +685,8 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                         /> :
                                         <div style={{
                                             transition: "color 500ms ease-out",
-                                            color: pressingField === 'notes' ? "#f16a50" : "inherit"
+                                            color: pressingField === 'notes' ? "#f16a50" : "inherit",
+                                            whiteSpace: "pre-wrap"
                                         }}>
                                             {node.notes || "Add note..."}
                                         </div>}
