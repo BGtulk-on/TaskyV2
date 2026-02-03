@@ -186,7 +186,7 @@ module.exports = async (req, res) => {
 
         if (path === '/api/update_status' && method === 'POST') {
             const { id, is_done } = req.body
-            await sql`UPDATE tsk_list SET is_done = ${is_done} WHERE id = ${id} AND user_id = ${user_id}`
+            await sql`UPDATE tsk_list SET is_done = ${is_done ? 1 : 0} WHERE id = ${id}`
             return res.json({ message: "success" })
         }
 
