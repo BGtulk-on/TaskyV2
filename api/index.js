@@ -205,7 +205,17 @@ module.exports = async (req, res) => {
                 return res.status(400).json({ error: "Invalid name (max 50)" })
             }
 
-            await sql`UPDATE tsk_list SET ${sql(field)} = ${value} WHERE id = ${id}`
+            const queries = {
+                name: sql`UPDATE tsk_list SET name = ${value} WHERE id = ${id}`,
+                description: sql`UPDATE tsk_list SET description = ${value} WHERE id = ${id}`,
+                start_date: sql`UPDATE tsk_list SET start_date = ${value} WHERE id = ${id}`,
+                end_date: sql`UPDATE tsk_list SET end_date = ${value} WHERE id = ${id}`,
+                assigned_to: sql`UPDATE tsk_list SET assigned_to = ${value} WHERE id = ${id}`,
+                links: sql`UPDATE tsk_list SET links = ${value} WHERE id = ${id}`,
+                notes: sql`UPDATE tsk_list SET notes = ${value} WHERE id = ${id}`
+            }
+
+            await queries[field]
             return res.json({ message: "success" })
         }
 
