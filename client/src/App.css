@@ -123,6 +123,7 @@
   width: 100%;
   font-size: 18px;
   box-sizing: border-box;
+  font-family: inherit;
 }
 
 .project-item {

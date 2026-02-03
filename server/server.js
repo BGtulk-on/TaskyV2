@@ -9,6 +9,11 @@ const { neon } = require('@neondatabase/serverless')
 const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
 
+if (!process.env.DATABASE_URL) {
+    console.error("Error: DATABASE_URL is not set in .env file or environment variables.")
+    process.exit(1)
+}
+
 const sql = neon(process.env.DATABASE_URL)
 
 const app = express()

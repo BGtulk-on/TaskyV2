@@ -751,7 +751,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                         }}
                         style={{
                             background: "transparent", borderBottom: "1px solid #f16a50",
-                            color: "wheat", width: "200px"
+                            color: "wheat", width: "200px", fontSize: "inherit", fontFamily: "inherit"
                         }}
                     />
                 </div>
