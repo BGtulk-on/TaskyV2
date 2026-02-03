@@ -4,6 +4,7 @@ import axios from 'axios'
 function Auth({ onLogin }) {
     const [isLogin, setIsLogin] = useState(true)
     const [isAnimating, setIsAnimating] = useState(false)
+    const [isExiting, setIsExiting] = useState(false)
     const [form, setForm] = useState({
         username: "",
         email: "",
@@ -58,7 +59,10 @@ function Auth({ onLogin }) {
             const res = await axios.post(url, form)
 
             if (res.data.message === 'success') {
-                onLogin(res.data.user, res.data.token)
+                setIsExiting(true)
+                setTimeout(() => {
+                    onLogin(res.data.user, res.data.token)
+                }, 450)
             }
         } catch (e) {
             setErr(e.response?.data?.error || "Error")
@@ -76,10 +80,11 @@ function Auth({ onLogin }) {
                 width: "300px", padding: "32px",
                 border: "1px solid #333", borderRadius: "16px",
                 background: "#0a0a0a",
-                transition: "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)",
-                transform: isAnimating ? "scale(0.95) translateY(10px)" : "scale(1) translateY(0)",
-                opacity: isAnimating ? 0.5 : 1,
-                boxShadow: "0 20px 50px rgba(0,0,0,0.5)"
+                boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
+                animation: isExiting ? "authPopOut 0.45s ease forwards" : (isAnimating ? "none" : "authPopIn 0.5s ease-out"),
+                transform: isAnimating ? "scale(0.95) translateY(10px)" : undefined,
+                opacity: isAnimating ? 0.5 : undefined,
+                transition: isAnimating ? "all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)" : undefined
             }}>
                 <h2 style={{
                     textAlign: "center", color: "wheat", margin: 0, marginBottom: "10px",
@@ -178,6 +183,17 @@ function Auth({ onLogin }) {
                 @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
                 @keyframes popIn { from { transform: scale(0); } to { transform: scale(1); } }
                 @keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } 100% { transform: translateX(0); } }
+                @keyframes authPopIn { 
+                    0% { transform: scale(0.9); opacity: 0; } 
+                    60% { transform: scale(1.02); } 
+                    80% { transform: scale(0.99); } 
+                    100% { transform: scale(1); opacity: 1; } 
+                }
+                @keyframes authPopOut { 
+                    0% { transform: scale(1); opacity: 1; } 
+                    20% { transform: scale(1.02); } 
+                    100% { transform: scale(0.9); opacity: 0; } 
+                }
                 .submit-btn:hover { filter: brightness(1.1); }
                 .submit-btn:active { transform: scale(0.98); }
                 .hover-btn:hover { background: #1a1a1a !important; border-color: #555 !important; color: #888 !important; }

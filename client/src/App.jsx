@@ -4,27 +4,23 @@ import axios from 'axios'
 import TaskTree from './components/TaskTree'
 import Auth from './components/Auth'
 import TaskContext from './context/TaskContext'
+import './App.css'
 
 
 function App() {
   const [dataList, setDtac] = useState([])
-  const [user, setUser] = useState(null)
-  const [token, setToken] = useState(null)
+  const [user, setUser] = useState(() => {
+    const u = localStorage.getItem("tasky_user")
+    return u ? JSON.parse(u) : null
+  })
+  const [token, setToken] = useState(() => localStorage.getItem("tasky_token"))
 
   const [selectedId, setSelectedId] = useState(null)
   const [pendingParentId, setPendingParentId] = useState(null)
 
   const [isCreatingRoot, setIsCreatingRoot] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
-
-  useEffect(() => {
-    const u = localStorage.getItem("tasky_user")
-    const t = localStorage.getItem("tasky_token")
-    if (u && t) {
-      setUser(JSON.parse(u))
-      setToken(t)
-    }
-  }, [])
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   useEffect(() => {
     const reqInt = axios.interceptors.request.use(config => {
@@ -281,11 +277,15 @@ function App() {
   }
 
   const handleLogout = () => {
-    setUser(null)
-    setToken(null)
-    localStorage.removeItem("tasky_user")
-    localStorage.removeItem("tasky_token")
-    setDtac([])
+    setIsLoggingOut(true)
+    setTimeout(() => {
+      setUser(null)
+      setToken(null)
+      localStorage.removeItem("tasky_user")
+      localStorage.removeItem("tasky_token")
+      setDtac([])
+      setIsLoggingOut(false)
+    }, 400)
   }
 
   if (!user) return <Auth onLogin={handleLogin} />
@@ -310,36 +310,31 @@ function App() {
 
   return (
     <TaskContext.Provider value={ctxVal}>
-      <div className="main-layout" onClick={() => { setSelectedId(null); setPendingParentId(null); setIsCreatingRoot(false) }} style={{ minHeight: "100vh" }}>
+      <div className={`main-layout ${isLoggingOut ? "fade-out" : ""}`} onClick={() => { setSelectedId(null); setPendingParentId(null); setIsCreatingRoot(false) }}>
 
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "40px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            {user.profile_pic && <img src={user.profile_pic} style={{ width: "40px", height: "40px", borderRadius: "50%", objectFit: "cover" }} />}
-            <span style={{ color: "#666" }}>Hi, {user.username}</span>
+        <div className="app-header">
+          <div className="user-info">
+            {user.profile_pic && <img src={user.profile_pic} className="user-avatar" />}
+            <span className="user-greeting">Hi, {user.username}</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-            <button
-              onClick={() => setShowSettings(true)}
-              title="Settings"
-              style={{ background: "transparent", border: "none", cursor: "pointer", color: "#666", display: "flex", alignItems: "center", transition: "transform 0.2s" }}
-              onMouseEnter={e => e.currentTarget.style.color = "wheat"}
-              onMouseLeave={e => e.currentTarget.style.color = "#666"}
-            >
+          <div className="header-actions">
+            <button onClick={() => setShowSettings(true)} title="Settings" className={`settings-btn ${showSettings ? "active" : ""}`}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="3"></circle>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
               </svg>
             </button>
-            <button onClick={handleLogout} style={{ background: "transparent", color: "#f55", cursor: "pointer", border: "none", fontSize: "14px" }}>Logout</button>
+            <button onClick={handleLogout} className="logout-btn">Logout</button>
           </div>
         </div>
 
 
         {isCreatingRoot && (
-          <div style={{ marginBottom: "20px" }}>
+          <div className="new-project-wrap">
             <input
               autoFocus
               placeholder="New Project..."
+              className="new-project-input"
               onBlur={() => setIsCreatingRoot(false)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && e.target.value.trim()) {
@@ -347,17 +342,13 @@ function App() {
                 }
                 if (e.key === 'Escape') setIsCreatingRoot(false)
               }}
-              style={{
-                background: "#111", border: "1px solid #f16a50", color: "wheat",
-                padding: "10px", borderRadius: "8px", width: "100%", fontSize: "18px"
-              }}
             />
           </div>
         )}
 
         <div className="prj-list">
           {myProjects.map((node, index) => (
-            <div key={node.id} style={{ marginBottom: "10px" }}>
+            <div key={node.id} className="project-item">
               <TaskTree
                 node={node}
                 isRoot={true}
@@ -369,10 +360,10 @@ function App() {
 
           {sharedProjects.length > 0 && (
             <>
-              <div style={{ height: "1px", background: "#333", margin: "20px 0" }} />
-              <div style={{ color: "#666", marginBottom: "10px", fontSize: "12px" }}>Shared with me:</div>
+              <div className="shared-divider" />
+              <div className="shared-label">Shared with me:</div>
               {sharedProjects.map((node, index) => (
-                <div key={node.id} style={{ marginBottom: "10px" }}>
+                <div key={node.id} className="project-item">
                   <TaskTree
                     ownerName={node.owner_name}
                     projectName={node.project_name && node.project_name !== node.name ? node.project_name : null}
@@ -387,7 +378,7 @@ function App() {
           )}
         </div>
 
-        <div style={{ marginTop: "50px", color: "#444", fontSize: "14px" }}>
+        <div className="hints">
           <div>* Press Enter to add subtask to selected.</div>
           <div>* Click background + Enter to add new Project.</div>
           <div>* Long Press task for menu.</div>
@@ -405,6 +396,14 @@ function SettingsModal({ user, onUpdate, prefs, onPrefUpdate, onClose }) {
   const [tab, setTab] = useState("profile")
   const [editForm, setEditForm] = useState({ username: user.username, profile_pic: user.profile_pic })
   const [msg, setMsg] = useState("")
+  const [selectOpen, setSelectOpen] = useState(false)
+  const [toggleAnim, setToggleAnim] = useState(false)
+  const [isClosing, setIsClosing] = useState(false)
+
+  const handleClose = () => {
+    setIsClosing(true)
+    setTimeout(() => onClose(), 300)
+  }
 
   const handleFile = (e) => {
     const file = e.target.files[0]
@@ -432,134 +431,91 @@ function SettingsModal({ user, onUpdate, prefs, onPrefUpdate, onClose }) {
   }
 
   return (
-    <div style={{
-      position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
-      background: "rgba(0,0,0,0.6)", backdropFilter: "blur(5px)",
-      display: "flex", justifyContent: "center", alignItems: "center",
-      zIndex: 1000
-    }} onClick={onClose}>
-      <div style={{
-        width: "400px", height: "450px", background: "#111", border: "1px solid #333", borderRadius: "16px",
-        padding: "20px", display: "flex", flexDirection: "column", gap: "20px",
-        boxShadow: "0 20px 50px rgba(0,0,0,0.5)",
-        transform: "scale(1)", animation: "popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275)"
-      }} onClick={e => e.stopPropagation()}>
+    <div className={`modal-overlay ${isClosing ? "closing" : ""}`} onClick={handleClose}>
+      <div className={`settings-modal ${isClosing ? "closing" : ""}`} onClick={e => e.stopPropagation()}>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h2 style={{ margin: 0, color: "wheat" }}>Settings</h2>
-          <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#666", cursor: "pointer", fontSize: "18px" }}>✕</button>
+        <div className="settings-header">
+          <h2 className="settings-title">Settings</h2>
+          <button onClick={handleClose} className="close-btn">✕</button>
         </div>
 
-        <div style={{ display: "flex", borderBottom: "1px solid #333", gap: "20px" }}>
-          <div
-            onClick={() => setTab("profile")}
-            style={{
-              padding: "10px 0", cursor: "pointer",
-              color: tab === "profile" ? "#f16a50" : "#666",
-              borderBottom: tab === "profile" ? "2px solid #f16a50" : "2px solid transparent",
-              transition: "all 0.3s"
-            }}
-          >Profile</div>
-          <div
-            onClick={() => setTab("prefs")}
-            style={{
-              padding: "10px 0", cursor: "pointer",
-              color: tab === "prefs" ? "#f16a50" : "#666",
-              borderBottom: tab === "prefs" ? "2px solid #f16a50" : "2px solid transparent",
-              transition: "all 0.3s"
-            }}
-          >Preferences</div>
+        <div className="tabs" data-active={tab}>
+          <div onClick={() => setTab("profile")} className={`tab ${tab === "profile" ? "active" : ""}`}>Profile</div>
+          <div onClick={() => setTab("prefs")} className={`tab ${tab === "prefs" ? "active" : ""}`}>Preferences</div>
         </div>
 
-        <div style={{ flex: 1, overflowY: "auto", minHeight: 0, paddingRight: "5px" }}>
+        <div className="tab-content">
           {tab === "profile" && (
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "16px", animation: "fadeIn 0.3s" }}>
+            <div className="profile-tab">
 
-              <label className="hover-img" style={{ position: "relative", cursor: "pointer" }}>
-                <img src={editForm.profile_pic} style={{ width: "100px", height: "100px", borderRadius: "50%", objectFit: "cover", border: "2px solid #333" }} />
-                <div className="overlay" style={{
-                  position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
-                  background: "rgba(0,0,0,0.5)", borderRadius: "50%",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  opacity: 0, transition: "opacity 0.2s", color: "#fff", fontSize: "12px"
-                }}>Change</div>
+              <label className="hover-img">
+                <img src={editForm.profile_pic} className="profile-avatar" />
+                <div className="overlay">Change</div>
                 <input type="file" accept="image/*" style={{ display: "none" }} onChange={handleFile} />
               </label>
-              <style>{`.hover-img:hover .overlay { opacity: 1; }`}</style>
 
-              <div style={{ textAlign: "center", width: "100%" }}>
+              <div className="profile-form">
                 <input
                   value={editForm.username}
                   onChange={e => setEditForm({ ...editForm, username: e.target.value })}
                   placeholder="Username"
-                  style={{
-                    background: "transparent", border: "none", borderBottom: "1px solid #333",
-                    textAlign: "center", color: "wheat", fontSize: "20px", fontWeight: "bold",
-                    outline: "none", padding: "4px", width: "200px"
-                  }}
+                  className="username-input"
                 />
-                <div style={{ color: "#666", fontSize: "14px", marginTop: "4px" }}>{user.email}</div>
+                <div className="user-email">{user.email}</div>
 
                 <input
                   type="password"
                   value={editForm.password || ""}
                   onChange={e => setEditForm({ ...editForm, password: e.target.value })}
                   placeholder="New Password"
-                  style={{
-                    background: "#111", border: "1px solid #333", borderRadius: "6px",
-                    textAlign: "center", color: "wheat", fontSize: "14px",
-                    outline: "none", padding: "8px", width: "200px", marginTop: "10px"
-                  }}
+                  className="password-input"
                 />
               </div>
 
-              <div style={{ marginTop: "20px", display: "flex", flexDirection: "column", gap: "10px", alignItems: "center" }}>
-                {msg && <div style={{ color: msg.includes("Error") || msg.includes("taken") ? "#f55" : "#4caf50", fontSize: "12px" }}>{msg}</div>}
-                <button onClick={handleSave} style={{
-                  background: "#f16a50", color: "#fff", border: "none",
-                  padding: "8px 16px", borderRadius: "6px", cursor: "pointer",
-                  fontWeight: "bold", fontSize: "12px"
-                }}>Save Changes</button>
+              <div className="save-section">
+                {msg && <div className={msg.includes("Error") || msg.includes("taken") ? "msg-error" : "msg-success"}>{msg}</div>}
+                <button onClick={handleSave} className="save-btn">Save Changes</button>
               </div>
 
-              <div style={{ marginTop: "10px", padding: "10px", background: "#1a1a1a", borderRadius: "8px", width: "100%", fontSize: "12px", color: "#888", textAlign: "center" }}>
+              <div className="user-id-box">
                 User ID: {user.id}
               </div>
             </div>
           )}
 
           {tab === "prefs" && (
-            <div style={{ display: "flex", flexDirection: "column", gap: "16px", animation: "fadeIn 0.3s" }}>
+            <div className="prefs-tab">
 
-              <div
-                onClick={() => onPrefUpdate({ ...prefs, moveDone: !prefs.moveDone })}
-                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px", background: "#1a1a1a", borderRadius: "8px", cursor: "pointer" }}
-              >
-                <div style={{ display: "flex", flexDirection: "column" }}>
-                  <span style={{ color: "#bbb" }}>Push Completed to Bottom</span>
-                  <span style={{ fontSize: "10px", color: "#666" }}>Move done tasks to end of list</span>
+              <div className="pref-item" onClick={() => { onPrefUpdate({ ...prefs, moveDone: !prefs.moveDone }); setToggleAnim(true); setTimeout(() => setToggleAnim(false), 300) }}>
+                <div className="pref-text">
+                  <span className="pref-label">Push Completed to Bottom</span>
+                  <span className="pref-desc">Move done tasks to end of list</span>
                 </div>
-                <div style={{ width: "40px", height: "20px", background: prefs.moveDone ? "#f16a50" : "#333", borderRadius: "10px", position: "relative", transition: "background 0.3s" }}>
-                  <div style={{
-                    position: "absolute", top: "2px", width: "16px", height: "16px", background: "#fff", borderRadius: "50%",
-                    left: prefs.moveDone ? "22px" : "2px", transition: "left 0.3s"
-                  }}></div>
+                <div className={`toggle ${prefs.moveDone ? "active" : ""} ${toggleAnim ? "jiggle" : ""}`}>
+                  <div className="toggle-knob"></div>
                 </div>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "10px", background: "#1a1a1a", borderRadius: "8px" }}>
-                <span style={{ color: "#bbb" }}>Sort Tasks By</span>
-                <select
-                  value={prefs.sort}
-                  onChange={(e) => onPrefUpdate({ ...prefs, sort: e.target.value })}
-                  style={{
-                    padding: "10px", background: "#111", border: "1px solid #333", borderRadius: "6px",
-                    color: "wheat", outline: "none", cursor: "pointer"
-                  }}
-                >
-                  <option value="newest">Created (Newest First)</option>
-                  <option value="due_closest">Due Date (Closest First)</option>
-                </select>
+              <div className="sort-section">
+                <span className="sort-label">Sort Tasks By</span>
+                <div className={`dropdown ${selectOpen ? "open" : ""}`}>
+                  <div className="dropdown-trigger" onClick={() => setSelectOpen(!selectOpen)}>
+                    <span>{prefs.sort === "newest" ? "Created (Newest First)" : "Due Date (Closest First)"}</span>
+                    <svg className="dropdown-arrow" viewBox="0 0 24 24">
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </div>
+                  <div className="dropdown-menu">
+                    <div
+                      className={`dropdown-item ${prefs.sort === "newest" ? "active" : ""}`}
+                      onClick={() => { onPrefUpdate({ ...prefs, sort: "newest" }); setSelectOpen(false) }}
+                    >Created (Newest First)</div>
+                    <div
+                      className={`dropdown-item ${prefs.sort === "due_closest" ? "active" : ""}`}
+                      onClick={() => { onPrefUpdate({ ...prefs, sort: "due_closest" }); setSelectOpen(false) }}
+                    >Due Date (Closest First)</div>
+                  </div>
+                </div>
               </div>
 
             </div>
