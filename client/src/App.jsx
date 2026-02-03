@@ -4,6 +4,7 @@ import axios from 'axios'
 import TaskTree from './components/TaskTree'
 import Auth from './components/Auth'
 import TaskContext from './context/TaskContext'
+import { Analytics } from "@vercel/analytics/react"
 import './App.css'
 
 
@@ -402,6 +403,7 @@ function App() {
 
         {showSettings && <SettingsModal user={user} onUpdate={handleLogin} prefs={prefs} onPrefUpdate={setPrefs} onClose={() => setShowSettings(false)} />}
 
+        <Analytics />
       </div>
     </TaskContext.Provider>
   )
