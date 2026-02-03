@@ -100,7 +100,7 @@ function App() {
 
   function load_data() {
     if (!token) return
-    axios.get(`http://localhost:3001/get_all`)
+    axios.get(`/api/get_all`)
       .then(res => {
         setDtac(res.data.data)
       })
@@ -183,7 +183,7 @@ function App() {
   }
 
   const add_task = (name, parent_id = null) => {
-    axios.post("http://localhost:3001/add_tsk", {
+    axios.post("/api/add_tsk", {
       name: name,
       parent_id: parent_id
     }).then(res => {
@@ -217,7 +217,7 @@ function App() {
 
     setDtac(prev => prev.map(t => t.id === id ? { ...t, is_done: status } : t))
 
-    axios.post("http://localhost:3001/update_status", {
+    axios.post("/api/update_status", {
       id: id,
       is_done: status
     }).catch(err => {
@@ -233,7 +233,7 @@ function App() {
   const update_details = (id, field, value) => {
     setDtac(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t))
 
-    axios.post("http://localhost:3001/update_details", {
+    axios.post("/api/update_details", {
       id, field, value
     })
   }
@@ -241,14 +241,14 @@ function App() {
   const toggle_expanded = (id, val) => {
     setDtac(prev => prev.map(t => t.id === id ? { ...t, is_expanded: val } : t))
 
-    axios.post("http://localhost:3001/update_expanded", {
+    axios.post("/api/update_expanded", {
       id: id,
       is_expanded: val
     })
   }
 
   const share_task = (task_id, username) => {
-    return axios.post("http://localhost:3001/share_task", { task_id, username })
+    return axios.post("/api/share_task", { task_id, username })
       .then(res => {
         load_data()
         return res
@@ -269,7 +269,7 @@ function App() {
     setDtac(prev => prev.filter(t => !toDel.includes(t.id)))
     if (selectedId === id) setSelectedId(null)
 
-    axios.post("http://localhost:3001/del_tsk", { id: id })
+    axios.post("/api/del_tsk", { id: id })
   }
 
 
@@ -419,7 +419,7 @@ function SettingsModal({ user, onUpdate, prefs, onPrefUpdate, onClose }) {
   const handleSave = () => {
     if (!editForm.username || editForm.username.length > 10) return setMsg("Invalid username")
 
-    axios.post("http://localhost:3001/update_profile", {
+    axios.post("/api/update_profile", {
       id: user.id,
       username: editForm.username,
       profile_pic: editForm.profile_pic

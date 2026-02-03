@@ -54,7 +54,7 @@ function Auth({ onLogin }) {
         }
 
         try {
-            const url = isLogin ? "http://localhost:3001/login" : "http://localhost:3001/register"
+            const url = isLogin ? "/api/login" : "/api/register"
             const res = await axios.post(url, form)
 
             if (res.data.message === 'success') {

@@ -15,5 +15,11 @@
     "license": "ISC",
     "engines": {
         "node": ">=18.0.0"
+    },
+    "dependencies": {
+        "@neondatabase/serverless": "^1.0.2",
+        "@vercel/postgres": "^0.10.0",
+        "bcrypt": "^6.0.0",
+        "jsonwebtoken": "^9.0.3"
     }
 }
