@@ -394,8 +394,8 @@ function App() {
         </div>
 
         <div className="hints">
-          <div>* Press Enter to add subtask to selected.</div>
           <div>* Click background + Enter to add new Project.</div>
+          <div>* Press Enter to add subtask to selected task.</div>
           <div>* Long Press task for menu.</div>
           <div>* Click task to show his sub-tasks.</div>
         </div>
