@@ -3,7 +3,7 @@ const path = require('path')
 
 const db_name = path.join(__dirname, '../data/data_v2.db')
 
-let databse = new sqlt.Database(db_name, (err) => {
+let database = new sqlt.Database(db_name, (err) => {
     if (err) {
         console.error(err.message)
     } else {
@@ -15,8 +15,8 @@ let databse = new sqlt.Database(db_name, (err) => {
 
 
 function db_run_init() {
-    databse.serialize(() => {
-        databse.run(`CREATE TABLE IF NOT EXISTS users (
+    database.serialize(() => {
+        database.run(`CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE,
             email TEXT UNIQUE,
@@ -24,14 +24,14 @@ function db_run_init() {
             profile_pic TEXT
         )`)
 
-        databse.run(`CREATE TABLE IF NOT EXISTS task_shares (
+        database.run(`CREATE TABLE IF NOT EXISTS task_shares (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             task_id INTEGER,
             user_id INTEGER
         )`)
 
 
-        databse.run(`CREATE TABLE IF NOT EXISTS tsk_list (
+        database.run(`CREATE TABLE IF NOT EXISTS tsk_list (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT, 
             parent_id INTEGER,
@@ -46,7 +46,7 @@ function db_run_init() {
             notes TEXT DEFAULT ''
         )`)
 
-        databse.all(`PRAGMA table_info(tsk_list)`, (err, rows) => {
+        database.all(`PRAGMA table_info(tsk_list)`, (err, rows) => {
             if (err) return
             const existing = rows.map(r => r.name)
             const cols = [
@@ -62,15 +62,15 @@ function db_run_init() {
 
             cols.forEach(c => {
                 if (!existing.includes(c.name)) {
-                    databse.run(`ALTER TABLE tsk_list ADD COLUMN ${c.name} ${c.type} ${c.def}`)
+                    database.run(`ALTER TABLE tsk_list ADD COLUMN ${c.name} ${c.type} ${c.def}`)
                 }
             })
         })
 
-        databse.run(`CREATE INDEX IF NOT EXISTS idx_tsk_user ON tsk_list(user_id)`)
-        databse.run(`CREATE INDEX IF NOT EXISTS idx_tsk_parent ON tsk_list(parent_id)`)
-        databse.run(`CREATE INDEX IF NOT EXISTS idx_share_task ON task_shares(task_id)`)
-        databse.run(`CREATE INDEX IF NOT EXISTS idx_share_user ON task_shares(user_id)`)
+        database.run(`CREATE INDEX IF NOT EXISTS idx_tsk_user ON tsk_list(user_id)`)
+        database.run(`CREATE INDEX IF NOT EXISTS idx_tsk_parent ON tsk_list(parent_id)`)
+        database.run(`CREATE INDEX IF NOT EXISTS idx_share_task ON task_shares(task_id)`)
+        database.run(`CREATE INDEX IF NOT EXISTS idx_share_user ON task_shares(user_id)`)
 
 
     })
@@ -78,4 +78,4 @@ function db_run_init() {
 
 
 
-module.exports = databse
+module.exports = database

@@ -161,9 +161,9 @@ function App() {
       if (prefs.sort === 'newest') {
         res = b.id - a.id
       } else if (prefs.sort === 'due_closest') {
-        if (!a.due_date) res = 1
-        else if (!b.due_date) res = -1
-        else res = new Date(a.due_date) - new Date(b.due_date)
+        if (!a.end_date) res = 1
+        else if (!b.end_date) res = -1
+        else res = new Date(a.end_date) - new Date(b.end_date)
       }
 
       return res
@@ -273,11 +273,6 @@ function App() {
   }
 
 
-  const treeData = build_tree(dataList)
-
-  const myProjects = treeData.filter(t => t.user_id === user.id)
-  const sharedProjects = treeData.filter(t => t.user_id !== user.id)
-
   const handleLogin = (u, t) => {
     setUser(u)
     setToken(t)
@@ -294,6 +289,10 @@ function App() {
   }
 
   if (!user) return <Auth onLogin={handleLogin} />
+
+  const treeData = build_tree(dataList)
+  const myProjects = treeData.filter(t => t.user_id === user.id)
+  const sharedProjects = treeData.filter(t => t.user_id !== user.id)
 
   const ctxVal = {
     selectedId,

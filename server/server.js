@@ -8,7 +8,7 @@ const database = require("./src/database.js")
 
 const helmet = require('helmet')
 
- 
+
 const app = express()
 app.use(helmet({
     crossOriginResourcePolicy: false,
@@ -44,8 +44,11 @@ app.use("/register", authLmt)
 
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret"
 
-
 const tokenBlacklist = new Set()
+
+const addToBlacklist = (token) => {
+    tokenBlacklist.add(token)
+}
 
 const checkLen = (str, max) => typeof str === 'string' && str.length > max
 
@@ -123,7 +126,7 @@ app.post("/login", (req, res) => {
 })
 
 app.post("/logout", authenticateToken, (req, res) => {
-    tokenBlacklist.add(req.token)
+    addToBlacklist(req.token)
     res.json({ message: "logged out" })
 })
 

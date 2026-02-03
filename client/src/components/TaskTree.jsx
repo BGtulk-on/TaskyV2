@@ -411,7 +411,6 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                 color: "#aaa",
                                 borderLeft: "2px solid #333",
                                 paddingLeft: "16px",
-                                paddingLeft: "16px",
                                 maxWidth: "500px",
                                 overflowWrap: "break-word",
                                 position: "relative"

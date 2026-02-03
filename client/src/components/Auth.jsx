@@ -47,6 +47,7 @@ function Auth({ onLogin }) {
             if (form.password.length < 8) return setErr("Password too short")
             if (!/[A-Z]/.test(form.password)) return setErr("Password needs uppercase letter")
             if (!/[a-z]/.test(form.password)) return setErr("Password needs lowercase letter")
+            if (!/[0-9]/.test(form.password)) return setErr("Password needs a number")
             if (!/[^A-Za-z0-9]/.test(form.password)) return setErr("Password needs special symbol")
 
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setErr("Invalid email format")
@@ -150,6 +151,7 @@ function Auth({ onLogin }) {
                         <RuleItem active={form.password.length >= 8} text="At least 8 characters" />
                         <RuleItem active={/[A-Z]/.test(form.password)} text="One uppercase letter" />
                         <RuleItem active={/[a-z]/.test(form.password)} text="One lowercase letter" />
+                        <RuleItem active={/[0-9]/.test(form.password)} text="One number" />
                         <RuleItem active={/[^A-Za-z0-9]/.test(form.password)} text="One special symbol" />
                         <RuleItem active={form.username.length > 0 && form.username.length <= 10} text="Username max 10 chars" />
                     </div>
