@@ -1,0 +1,14 @@
+node_modules/
+*.log
+.env
+*.db
+.DS_Store
+dist/
+build/
+.agent/
+old/
+
+
+*.jpg
+*.jpeg
+*.png
