@@ -19,6 +19,7 @@ function App() {
   const [pendingParentId, setPendingParentId] = useState(null)
 
   const [isCreatingRoot, setIsCreatingRoot] = useState(false)
+  const [rootPrjName, setRootPrjName] = useState("")
   const [showSettings, setShowSettings] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
@@ -105,8 +106,9 @@ function App() {
 
 
   const [prefs, setPrefs] = useState(() => {
+    const defaults = { sort: "newest", moveDone: false, autoNewTask: true, holdDelay: 500, enableJiggle: true }
     const saved = localStorage.getItem("tasky_prefs")
-    return saved ? JSON.parse(saved) : { sort: "newest", moveDone: false }
+    return saved ? { ...defaults, ...JSON.parse(saved) } : defaults
   })
 
   useEffect(() => {
@@ -197,8 +199,17 @@ function App() {
         contributors: []
       }
       setDtac(prev => [...prev, newT])
-      setPendingParentId(null)
-      setIsCreatingRoot(false)
+
+      if (prefs.autoNewTask) {
+        if (parent_id) {
+          setPendingParentId(parent_id)
+        } else {
+          setIsCreatingRoot(true)
+        }
+      } else {
+        setPendingParentId(null)
+        setIsCreatingRoot(false)
+      }
     })
   }
 
@@ -305,7 +316,8 @@ function App() {
     onToggleExpanded: toggle_expanded,
     openDetailsIds,
     onDetailsToggle: handleToggleDetails,
-    onShare: share_task
+    onShare: share_task,
+    prefs
   }
 
   return (
@@ -335,10 +347,13 @@ function App() {
               autoFocus
               placeholder="New Project..."
               className="new-project-input"
+              value={rootPrjName}
+              onChange={e => setRootPrjName(e.target.value)}
               onBlur={() => setIsCreatingRoot(false)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && e.target.value.trim()) {
-                  add_task(e.target.value)
+                if (e.key === 'Enter' && rootPrjName.trim()) {
+                  add_task(rootPrjName)
+                  setRootPrjName("")
                 }
                 if (e.key === 'Escape') setIsCreatingRoot(false)
               }}
@@ -397,7 +412,8 @@ function SettingsModal({ user, onUpdate, prefs, onPrefUpdate, onClose }) {
   const [editForm, setEditForm] = useState({ username: user.username, profile_pic: user.profile_pic })
   const [msg, setMsg] = useState("")
   const [selectOpen, setSelectOpen] = useState(false)
-  const [toggleAnim, setToggleAnim] = useState(false)
+  const [holdDelayOpen, setHoldDelayOpen] = useState(false)
+  const [toggleAnim, setToggleAnim] = useState(null)
   const [isClosing, setIsClosing] = useState(false)
 
   const handleClose = () => {
@@ -486,13 +502,54 @@ function SettingsModal({ user, onUpdate, prefs, onPrefUpdate, onClose }) {
           {tab === "prefs" && (
             <div className="prefs-tab">
 
-              <div className="pref-item" onClick={() => { onPrefUpdate({ ...prefs, moveDone: !prefs.moveDone }); setToggleAnim(true); setTimeout(() => setToggleAnim(false), 300) }}>
+              <div className="pref-item" onClick={() => { onPrefUpdate({ ...prefs, moveDone: !prefs.moveDone }); setToggleAnim('moveDone'); setTimeout(() => setToggleAnim(null), 300) }}>
                 <div className="pref-text">
                   <span className="pref-label">Push Completed to Bottom</span>
                   <span className="pref-desc">Move done tasks to end of list</span>
                 </div>
-                <div className={`toggle ${prefs.moveDone ? "active" : ""} ${toggleAnim ? "jiggle" : ""}`}>
+                <div className={`toggle ${prefs.moveDone ? "active" : ""} ${toggleAnim === 'moveDone' ? "jiggle" : ""}`}>
                   <div className="toggle-knob"></div>
+                </div>
+              </div>
+
+              <div className="pref-item" onClick={() => { onPrefUpdate({ ...prefs, autoNewTask: !prefs.autoNewTask }); setToggleAnim('autoNewTask'); setTimeout(() => setToggleAnim(null), 300) }}>
+                <div className="pref-text">
+                  <span className="pref-label">Auto New Task</span>
+                  <span className="pref-desc">Continue creating tasks after pressing Enter</span>
+                </div>
+                <div className={`toggle ${prefs.autoNewTask ? "active" : ""} ${toggleAnim === 'autoNewTask' ? "jiggle" : ""}`}>
+                  <div className="toggle-knob"></div>
+                </div>
+              </div>
+
+              <div className="pref-item" onClick={() => { onPrefUpdate({ ...prefs, enableJiggle: !prefs.enableJiggle }); setToggleAnim('enableJiggle'); setTimeout(() => setToggleAnim(null), 300) }}>
+                <div className="pref-text">
+                  <span className="pref-label">Impact Jiggle</span>
+                  <span className="pref-desc">Shake task slightly when closing subtasks or details</span>
+                </div>
+                <div className={`toggle ${prefs.enableJiggle ? "active" : ""} ${toggleAnim === 'enableJiggle' ? "jiggle" : ""}`}>
+                  <div className="toggle-knob"></div>
+                </div>
+              </div>
+
+              <div className="sort-section">
+                <span className="sort-label">Hold Delay</span>
+                <div className={`dropdown ${holdDelayOpen ? "open" : ""}`}>
+                  <div className="dropdown-trigger" onClick={() => setHoldDelayOpen(!holdDelayOpen)}>
+                    <span>{prefs.holdDelay / 1000}s</span>
+                    <svg className="dropdown-arrow" viewBox="0 0 24 24">
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </div>
+                  <div className="dropdown-menu">
+                    {[200, 500, 1000].map(val => (
+                      <div
+                        key={val}
+                        className={`dropdown-item ${prefs.holdDelay === val ? "active" : ""}`}
+                        onClick={() => { onPrefUpdate({ ...prefs, holdDelay: val }); setHoldDelayOpen(false) }}
+                      >{val / 1000}s</div>
+                    ))}
+                  </div>
                 </div>
               </div>
 

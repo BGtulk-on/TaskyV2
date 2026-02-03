@@ -5,7 +5,7 @@ import axios from 'axios'
 import { useTaskContext } from '../context/TaskContext'
 
 function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName, canShare = true, parentContributors = [] }) {
-    const { selectedId, pendingParentId, onSelect, submitCtx, onToggle, onDel, onUpdate, onToggleExpanded, openDetailsIds, onDetailsToggle, onShare } = useTaskContext()
+    const { selectedId, pendingParentId, onSelect, submitCtx, onToggle, onDel, onUpdate, onToggleExpanded, openDetailsIds, onDetailsToggle, onShare, prefs } = useTaskContext()
 
     const allContributors = [...parentContributors]
     if (node.contributors) {
@@ -42,7 +42,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
         const hasChildren = node.children && node.children.length > 0
         const justClosedSubs = prevOpen.current && !open && hasChildren
 
-        if (justClosedDetails || justClosedSubs) {
+        if ((justClosedDetails || justClosedSubs) && prefs.enableJiggle) {
             setTimeout(() => {
                 setIsJiggling(true)
                 setTimeout(() => setIsJiggling(false), 200)
@@ -110,12 +110,12 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
         },
         onFinish: () => setIsPressing(false),
         onCancel: () => setIsPressing(false),
-        threshold: 500,
+        threshold: prefs.holdDelay,
         cancelOnMovement: true
     })
 
     const lpConfig = (field) => ({
-        threshold: 500,
+        threshold: prefs.holdDelay,
         cancelOnMovement: true,
         onStart: () => setPressingField(field),
         onFinish: () => setPressingField(null),
@@ -288,7 +288,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                             : detailsOpen
                                         const useLtr = showOrange || (isSelected && !detailsOpen) || node.is_done
 
-                                        const totalDuration = 500
+                                        const totalDuration = prefs.holdDelay
                                         const charTransition = 150
                                         const delayStep = node.name.length > 1
                                             ? (totalDuration - charTransition) / (node.name.length - 1)
@@ -424,7 +424,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                         cursor: "pointer",
                                         padding: "8px",
                                         borderRadius: "4px",
-                                        transition: "background 500ms ease-out",
+                                        transition: `all ${prefs.holdDelay}ms ease-out`,
                                         background: pressingField === 'description' ? "rgba(241, 106, 80, 0.1)" : "transparent"
                                     }}>
                                     {editField === 'description' ?
@@ -447,7 +447,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                         />
                                         : (
                                             <div style={{
-                                                transition: "color 500ms ease-out",
+                                                transition: `color ${prefs.holdDelay}ms ease-out`,
                                                 color: pressingField === 'description' ? "#f16a50" : "inherit",
                                                 whiteSpace: "pre-wrap"
                                             }}>
@@ -462,7 +462,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                         padding: "8px",
                                         borderRadius: "4px",
                                         cursor: "pointer",
-                                        transition: "background 500ms ease-out",
+                                        transition: `all ${prefs.holdDelay}ms ease-out`,
                                         background: pressingField === 'start_date' ? "rgba(241, 106, 80, 0.1)" : "transparent"
                                     }}
                                 >
@@ -488,7 +488,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                         :
                                         <span style={{
                                             marginLeft: "8px",
-                                            transition: "color 500ms ease-out",
+                                            transition: `color ${prefs.holdDelay}ms ease-out`,
                                             color: pressingField === 'start_date' ? "#f16a50" : "inherit"
                                         }}>
                                             {format_date(node.start_date)}
@@ -500,7 +500,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                         padding: "8px",
                                         borderRadius: "4px",
                                         cursor: "pointer",
-                                        transition: "background 500ms ease-out",
+                                        transition: `all ${prefs.holdDelay}ms ease-out`,
                                         background: pressingField === 'end_date' ? "rgba(241, 106, 80, 0.1)" : "transparent"
                                     }}
                                 >
@@ -526,7 +526,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                         :
                                         <span style={{
                                             marginLeft: "8px",
-                                            transition: "color 500ms ease-out",
+                                            transition: `color ${prefs.holdDelay}ms ease-out`,
                                             color: pressingField === 'end_date' ? "#f16a50" : "inherit"
                                         }}>
                                             {format_date(node.end_date)}
@@ -539,7 +539,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                         padding: "8px",
                                         borderRadius: "4px",
                                         cursor: "pointer",
-                                        transition: "background 500ms ease-out",
+                                        transition: `all ${prefs.holdDelay}ms ease-out`,
                                         background: pressingField === 'assigned_to' ? "rgba(241, 106, 80, 0.1)" : "transparent"
                                     }}
                                 >
@@ -596,7 +596,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                         :
                                         <span style={{
                                             marginLeft: "8px",
-                                            transition: "color 500ms ease-out",
+                                            transition: `color ${prefs.holdDelay}ms ease-out`,
                                             color: pressingField === 'assigned_to' ? "#f16a50" : "inherit"
                                         }}>
                                             {node.assigned_to || "_"}
@@ -609,7 +609,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                         padding: "8px",
                                         borderRadius: "4px",
                                         cursor: "pointer",
-                                        transition: "background 500ms ease-out",
+                                        transition: `all ${prefs.holdDelay}ms ease-out`,
                                         background: pressingField === 'links' ? "rgba(241, 106, 80, 0.1)" : "transparent"
                                     }}
                                 >
@@ -635,7 +635,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                             marginLeft: "8px",
                                             display: "inline-block",
                                             verticalAlign: "top",
-                                            transition: "color 500ms ease-out",
+                                            transition: `color ${prefs.holdDelay}ms ease-out`,
                                             color: pressingField === 'links' ? "#f16a50" : "inherit"
                                         }}>
                                             {node.links ? node.links.split('\n').map((link, i) => (
@@ -661,7 +661,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                         cursor: "pointer",
                                         padding: "8px",
                                         borderRadius: "4px",
-                                        transition: "background 500ms ease-out",
+                                        transition: `all ${prefs.holdDelay}ms ease-out`,
                                         background: pressingField === 'notes' ? "rgba(241, 106, 80, 0.1)" : "transparent"
                                     }}
                                 >
@@ -684,7 +684,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                             }}
                                         /> :
                                         <div style={{
-                                            transition: "color 500ms ease-out",
+                                            transition: `color ${prefs.holdDelay}ms ease-out`,
                                             color: pressingField === 'notes' ? "#f16a50" : "inherit",
                                             whiteSpace: "pre-wrap"
                                         }}>
