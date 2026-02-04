@@ -5,7 +5,7 @@ import axios from 'axios'
 import { useTaskContext } from '../context/TaskContext'
 
 function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName, canShare = true, parentContributors = [] }) {
-    const { selectedId, pendingParentId, onSelect, submitCtx, onToggle, onDel, onUpdate, onToggleExpanded, openDetailsIds, onDetailsToggle, onShare, prefs } = useTaskContext()
+    const { selectedId, pendingParentId, onSelect, submitCtx, onToggle, onDel, onUpdate, onToggleExpanded, openDetailsIds, onDetailsToggle, onShare, prefs, isGuest } = useTaskContext()
 
     const allContributors = [...parentContributors]
     if (node.contributors) {
@@ -63,6 +63,8 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
     const [contribInput, setContribInput] = useState("")
 
     const fetchContrib = () => {
+        if (isGuest) return setContributors([])
+
         axios.get(`/api/get_contr?task_id=${node.id}`)
             .then(res => setContributors(res.data.data))
             .catch(err => console.log(err))
@@ -94,6 +96,11 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
     }
 
     const handleRemContrib = (uid) => {
+        if (isGuest) {
+            setContributors(prev => prev.filter(c => c.id !== uid))
+            return
+        }
+
         axios.post("/api/rem_contr", { task_id: node.id, user_id: uid })
             .then(() => fetchContrib())
     }

@@ -4,7 +4,7 @@ import './Landing.css'
 function Landing({ onGo }) {
     var list_itms = [
         { t: 'Security', d: 'Your data is encrypted and protected at all times.' },
-        { t: 'Personal Focus', d: 'Perfect for daily todos and small personal projects.' },
+        { t: 'Personal Focus', d: 'Perfect for daily todos and small/big projects.' },
         { t: 'Team Collab', d: 'Share subtrees with your team in real time.' }
     ]
 
@@ -27,7 +27,7 @@ function Landing({ onGo }) {
                 <div className="lg_txt">Tasky</div>
 
 
-                <a href="https://github.com/BGtulk-on/TaskyV2" target="_blank" className="gh_lnk">GitHub</a>
+                <a href="https://github.com/BGtulk-on/TaskyV2" target="_blank" className="gh_lnk" data-tip="Yea, its open source!">GitHub</a>
             </nav>
 
             <header className="hero_split">
@@ -41,6 +41,8 @@ function Landing({ onGo }) {
 
                     <div className="btn_box">
                         <button className="btn_st p_btn pulse_btn" onClick={onGo}>Get Started Now</button>
+
+                        <button className="btn_st pulse_btn btn_guest" onClick={() => { window.location.href = '/guest' }}>Guest Mode</button>
                     </div>
                 </div>
 

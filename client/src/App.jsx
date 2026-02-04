@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import TaskTree from './components/TaskTree'
 import Auth from './components/Auth'
@@ -12,10 +12,18 @@ import Landing from './Landing'
 function App() {
   const [dataList, setDtac] = useState([])
   const [user, setUser] = useState(() => {
+    if (window.location.pathname === '/guest') {
+      return { id: "guest", username: "Guest User", profile_pic: null }
+    }
     const u = localStorage.getItem("tasky_user")
     return u ? JSON.parse(u) : null
   })
-  const [token, setToken] = useState(() => localStorage.getItem("tasky_token"))
+  const [token, setToken] = useState(() => {
+    if (window.location.pathname === '/guest') {
+      return "guest_mode"
+    }
+    return localStorage.getItem("tasky_token")
+  })
 
   const [selectedId, setSelectedId] = useState(null)
   const [pendingParentId, setPendingParentId] = useState(null)
@@ -99,6 +107,54 @@ function App() {
 
   function load_data() {
     if (!token) return
+
+    if (token == "guest_mode") {
+      setDtac([
+        { id: 100, name: "Tasky Launch", parent_id: null, is_done: 0, is_expanded: 1, description: "Main project tracking for the new version launch.", user_id: "guest", start_date: "2026-02-01", end_date: "2026-03-01" },
+
+        { id: 101, name: "1. Planning Phase", parent_id: 100, is_done: 1, is_expanded: 0, description: "Initial requirements and scoping.", user_id: "guest", start_date: "2026-02-01", end_date: "2026-02-05" },
+        { id: 102, name: "Market Research", parent_id: 101, is_done: 1, is_expanded: 1, description: "Analyze competitor features.", user_id: "guest", links: "https://example.com/competitors" },
+        { id: 103, name: "Define MVP Features", parent_id: 101, is_done: 1, is_expanded: 1, description: "Core feature set: Nested tasks, Guest mode, Shared projects.", user_id: "guest" },
+
+        { id: 104, name: "2. Design", parent_id: 100, is_done: 0, is_expanded: 1, description: "UI/UX design sprint.", user_id: "guest", start_date: "2026-02-06", end_date: "2026-02-15" },
+        { id: 105, name: "High Fidelity Mockups", parent_id: 104, is_done: 1, is_expanded: 1, description: "Figma designs for Landing and App.", user_id: "guest", assigned_to: "Sarah" },
+        { id: 106, name: "Dark Mode Pallete", parent_id: 104, is_done: 0, is_expanded: 1, description: "Finalize black/wheat/orange contrast.", user_id: "guest", notes: "Make sure orange pops on the dark bg." },
+
+        { id: 107, name: "3. Development", parent_id: 100, is_done: 0, is_expanded: 1, description: "Coding and implementation.", user_id: "guest", start_date: "2026-02-16", end_date: "2026-02-28" },
+
+        { id: 108, name: "Frontend Architecture", parent_id: 107, is_done: 1, is_expanded: 1, description: "React + Context API setup.", user_id: "guest" },
+        { id: 109, name: "Backend API", parent_id: 107, is_done: 0, is_expanded: 1, description: "Node/Express endpoints.", user_id: "guest" },
+        { id: 1091, name: "Auth Middleware", parent_id: 109, is_done: 1, is_expanded: 1, description: "JWT handling.", user_id: "guest" },
+        { id: 1092, name: "Task CRUD", parent_id: 109, is_done: 0, is_expanded: 1, description: "DB queries.", user_id: "guest" },
+
+        { id: 110, name: "Guest Mode Implementation", parent_id: 107, is_done: 0, is_expanded: 1, description: "Local-only storage for testing.", user_id: "guest", notes: "Ensure no API calls on guest routes." },
+
+
+        { id: 200, name: "Indie Game: CyberFarms", parent_id: null, is_done: 0, is_expanded: 0, description: "Cyberpunk farming simulator RPG.", user_id: "guest", start_date: "2026-04-01", end_date: "2026-12-31" },
+
+        { id: 201, name: "Core Mechanics", parent_id: 200, is_done: 0, is_expanded: 1, description: "Basic gameplay loop.", user_id: "guest" },
+        { id: 202, name: "Player Movement", parent_id: 201, is_done: 1, is_expanded: 1, description: "WASD + Dash.", user_id: "guest" },
+        { id: 203, name: "Farming System", parent_id: 201, is_done: 0, is_expanded: 1, description: "Planting, watering, harvesting.", user_id: "guest" },
+        { id: 2031, name: "Soil State Machine", parent_id: 203, is_done: 1, is_expanded: 1, description: "Dry -> Wet -> Grown.", user_id: "guest" },
+        { id: 2032, name: "Crop Growth Logic", parent_id: 203, is_done: 0, is_expanded: 1, description: "Timer based updates.", user_id: "guest" },
+        { id: 204, name: "Inventory UI", parent_id: 201, is_done: 0, is_expanded: 1, description: "Grid based system with drag & drop.", user_id: "guest", assigned_to: "UI Dev" },
+
+        { id: 220, name: "Art Assets", parent_id: 200, is_done: 0, is_expanded: 1, description: "Pixel art style.", user_id: "guest" },
+        { id: 221, name: "Character Sprites", parent_id: 220, is_done: 0, is_expanded: 1, user_id: "guest" },
+        { id: 2211, name: "Idle Animations", parent_id: 221, is_done: 1, is_expanded: 1, user_id: "guest" },
+        { id: 2212, name: "Run Cycle", parent_id: 221, is_done: 0, is_expanded: 1, user_id: "guest" },
+        { id: 222, name: "Environment", parent_id: 220, is_done: 0, is_expanded: 1, user_id: "guest" },
+        { id: 2221, name: "Neon City Tileset", parent_id: 222, is_done: 0, is_expanded: 1, user_id: "guest", notes: "Need more purple." },
+        { id: 2222, name: "Cyber-Cow Sprite", parent_id: 222, is_done: 1, is_expanded: 1, user_id: "guest" },
+
+        { id: 230, name: "Sound Design", parent_id: 200, is_done: 0, is_expanded: 1, user_id: "guest" },
+        { id: 231, name: "Main Theme", parent_id: 230, is_done: 1, is_expanded: 1, description: "Lo-fi synthwave track.", user_id: "guest", links: "https://soundcloud.com" },
+        { id: 232, name: "SFX", parent_id: 230, is_done: 0, is_expanded: 1, user_id: "guest" },
+        { id: 2321, name: "Laser Hoe Sound", parent_id: 232, is_done: 0, is_expanded: 1, user_id: "guest" }
+      ])
+      return
+    }
+
     axios.get(`/api/get_all`)
       .then(res => {
         setDtac(res.data.data)
@@ -183,6 +239,37 @@ function App() {
   }
 
   const add_task = (name, parent_id = null) => {
+    if (token == "guest_mode") {
+      const newT = {
+        id: Date.now(),
+        name: name,
+        parent_id: parent_id,
+        is_done: 0,
+        is_expanded: 1,
+        description: '',
+        start_date: '',
+        end_date: '',
+        assigned_to: '',
+        links: '',
+        notes: '',
+        contributors: [],
+        user_id: "guest"
+      }
+      setDtac(prev => [...prev, newT])
+
+      if (prefs.autoNewTask) {
+        if (parent_id) {
+          setPendingParentId(parent_id)
+        } else {
+          setIsCreatingRoot(true)
+        }
+      } else {
+        setPendingParentId(null)
+        setIsCreatingRoot(false)
+      }
+      return
+    }
+
     axios.post("/api/add_tsk", {
       name: name,
       parent_id: parent_id
@@ -226,6 +313,8 @@ function App() {
 
     setDtac(prev => prev.map(t => t.id === id ? { ...t, is_done: status } : t))
 
+    if (token == "guest_mode") return
+
     axios.post("/api/update_status", {
       id: id,
       is_done: status
@@ -242,6 +331,8 @@ function App() {
   const update_details = (id, field, value) => {
     setDtac(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t))
 
+    if (token == "guest_mode") return
+
     axios.post("/api/update_details", {
       id, field, value
     })
@@ -250,6 +341,8 @@ function App() {
   const toggle_expanded = (id, val) => {
     setDtac(prev => prev.map(t => t.id === id ? { ...t, is_expanded: val } : t))
 
+    if (token == "guest_mode") return
+
     axios.post("/api/update_expanded", {
       id: id,
       is_expanded: val
@@ -257,6 +350,8 @@ function App() {
   }
 
   const share_task = (task_id, username) => {
+    if (token == "guest_mode") return Promise.resolve({ data: { message: "Guest mode - simulated share" } });
+
     return axios.post("/api/share_task", { task_id, username })
       .then(res => {
         load_data()
@@ -278,6 +373,8 @@ function App() {
     setDtac(prev => prev.filter(t => !toDel.includes(t.id)))
     if (selectedId === id) setSelectedId(null)
 
+    if (token == "guest_mode") return
+
     axios.post("/api/del_tsk", { id: id })
   }
 
@@ -292,6 +389,11 @@ function App() {
   const handleLogout = () => {
     setIsLoggingOut(true)
     setTimeout(() => {
+      if (window.location.pathname === '/guest') {
+        window.location.href = '/'
+        return
+      }
+
       setUser(null)
       setToken(null)
       localStorage.removeItem("tasky_user")
@@ -306,11 +408,11 @@ function App() {
   if (!user && showLanding) return <Landing onGo={() => setShowLanding(false)} />
   if (!user) return <Auth onLogin={handleLogin} />
 
-  const treeData = build_tree(dataList)
-  const myProjects = treeData.filter(t => t.user_id === user.id)
-  const sharedProjects = treeData.filter(t => t.user_id !== user.id)
+  const treeData = useMemo(() => build_tree(dataList), [dataList, prefs.moveDone, prefs.sort, justDoneIds])
+  const myProjects = useMemo(() => treeData.filter(t => t.user_id === user.id), [treeData, user.id])
+  const sharedProjects = useMemo(() => treeData.filter(t => t.user_id !== user.id), [treeData, user.id])
 
-  const ctxVal = {
+  const ctxVal = useMemo(() => ({
     selectedId,
     pendingParentId,
     onSelect: (id) => { setSelectedId(id); if (id === null) setPendingParentId(null); },
@@ -322,8 +424,9 @@ function App() {
     openDetailsIds,
     onDetailsToggle: handleToggleDetails,
     onShare: share_task,
-    prefs
-  }
+    prefs,
+    isGuest: token === 'guest_mode'
+  }), [selectedId, pendingParentId, openDetailsIds, prefs, token, dataList, justDoneIds])
 
   return (
     <TaskContext.Provider value={ctxVal}>
@@ -439,6 +542,8 @@ function SettingsModal({ user, onUpdate, prefs, onPrefUpdate, onClose }) {
   }
 
   const handleSave = () => {
+    if (user.id === "guest") return setMsg("Not available in Guest Mode")
+
     if (!editForm.username || editForm.username.length > 10) return setMsg("Invalid username")
 
     axios.post("/api/update_profile", {

@@ -61,11 +61,38 @@ body {
     font-weight: 500;
     transition: 0.3s;
     font-size: 16px;
+    position: relative;
 }
 
 
 .gh_lnk:hover {
     color: var(--accnt);
+}
+
+.gh_lnk::after {
+    content: attr(data-tip);
+    position: absolute;
+    top: 140%;
+    left: 50%;
+
+    background: var(--secon);
+    color: #000;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(-50%) translateY(10px);
+    transition: all 0.2s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+}
+
+.gh_lnk:hover::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
 }
 
 .btn_box {
@@ -140,6 +167,8 @@ body {
     width: 100%;
     cursor: pointer;
     transform-style: preserve-3d;
+    will-change: transform;
+    backface-visibility: hidden;
 }
 
 .img_preview {
@@ -148,11 +177,15 @@ body {
     overflow: hidden;
     border: 1px solid rgba(245, 222, 179, 0.2);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    backface-visibility: hidden;
+    transform: translateZ(0);
 }
 
 .img_preview img {
     width: 100%;
     display: block;
+    image-rendering: -webkit-optimize-contrast;
+    backface-visibility: hidden;
 }
 
 
