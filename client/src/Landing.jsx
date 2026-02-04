@@ -41,8 +41,6 @@ function Landing({ onGo }) {
 
                     <div className="btn_box">
                         <button className="btn_st p_btn pulse_btn" onClick={onGo}>Get Started Now</button>
-
-                        <button className="btn_st pulse_btn btn_guest" onClick={() => { window.location.href = '/guest' }}>Guest Mode</button>
                     </div>
                 </div>
 
