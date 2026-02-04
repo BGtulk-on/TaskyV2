@@ -6,6 +6,7 @@ import Auth from './components/Auth'
 import TaskContext from './context/TaskContext'
 import { Analytics } from "@vercel/analytics/react"
 import './App.css'
+import Landing from './Landing'
 
 
 function App() {
@@ -300,6 +301,9 @@ function App() {
     }, 400)
   }
 
+  const [showLanding, setShowLanding] = useState(true)
+
+  if (!user && showLanding) return <Landing onGo={() => setShowLanding(false)} />
   if (!user) return <Auth onLogin={handleLogin} />
 
   const treeData = build_tree(dataList)

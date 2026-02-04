@@ -1,0 +1,232 @@
+@import url('https://api.fontshare.com/v2/css?f[]=switzer@100,101,200,201,300,301,400,401,500,501,600,601,700,701,800,801,900,901&display=swap');
+
+:root {
+    --bg-dark: #000000;
+    --secon: #f5deb3;
+    --accnt: #f16a50;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Switzer', sans-serif;
+}
+
+.fade_up {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fade_in_up 0.8s ease forwards;
+}
+
+@keyframes fade_in_up {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+body {
+    background: var(--bg-dark);
+    color: var(--secon);
+}
+
+.main_wrap {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.nav_bar {
+    width: 100%;
+    max-width: 1200px;
+    padding: 32px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.lg_txt {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--accnt);
+    letter-spacing: -1px;
+}
+
+.btn_box {
+    display: flex;
+    gap: 16px;
+}
+
+.btn_st {
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.2s;
+}
+
+.p_btn {
+    background: var(--accnt);
+    color: #000;
+    border: none;
+}
+
+.pulse_btn {
+    padding: 14px 32px;
+    font-size: 18px;
+}
+
+/* removed pulse logic */
+
+.s_btn {
+    background: transparent;
+    border: 1px solid var(--secon);
+    color: var(--secon);
+}
+
+.hero_split {
+    display: flex;
+    align-items: center;
+    gap: 48px;
+    max-width: 1200px;
+    padding: 64px 16px;
+    width: 100%;
+}
+
+.hero_left {
+    flex: 1;
+}
+
+.hero_right {
+    flex: 1;
+    perspective: 1000px;
+}
+
+.main_titl {
+    font-size: 56px;
+    font-weight: 900;
+    line-height: 1.1;
+    margin-bottom: 24px;
+}
+
+.main_titl span {
+    color: var(--accnt);
+}
+
+.sub_txt {
+    font-size: 18px;
+    opacity: 0.8;
+    margin-bottom: 32px;
+    max-width: 500px;
+}
+
+.img_card {
+    width: 100%;
+    cursor: pointer;
+    transform-style: preserve-3d;
+}
+
+.img_preview {
+    width: 100%;
+    border-radius: 24px;
+    overflow: hidden;
+    border: 1px solid rgba(245, 222, 179, 0.2);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.img_preview img {
+    width: 100%;
+    display: block;
+}
+
+
+.feat_grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 32px;
+    max-width: 1200px;
+    padding: 64px 16px;
+}
+
+.feat_card {
+    padding: 32px;
+    border: 1px solid rgba(245, 222, 179, 0.1);
+    border-radius: 16px;
+    transition: 0.3s;
+}
+
+.feat_card:hover {
+    border-color: var(--accnt);
+    transform: translateY(-4px);
+}
+
+.icn_box {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+}
+
+.icn_box img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.c_titl {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.c_desc {
+    font-size: 16px;
+    opacity: 0.7;
+}
+
+
+@media (max-width: 1024px) {
+    .feat_grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .hero_split {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .sub_txt {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .btn_box {
+        justify-content: center;
+    }
+
+    .main_titl {
+        font-size: 42px;
+    }
+
+    .feat_grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .nav_bar {
+        padding: 16px;
+    }
+
+    .lg_txt {
+        font-size: 24px;
+    }
+
+    .main_titl {
+        font-size: 32px;
+    }
+}
