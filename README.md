@@ -75,10 +75,3 @@ Tasky implements several security best practices:
 
 
 
-
-## License
-
-ISC License
-
-
-

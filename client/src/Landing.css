@@ -55,6 +55,19 @@ body {
     letter-spacing: -1px;
 }
 
+.gh_lnk {
+    color: var(--secon);
+    text-decoration: none;
+    font-weight: 500;
+    transition: 0.3s;
+    font-size: 16px;
+}
+
+
+.gh_lnk:hover {
+    color: var(--accnt);
+}
+
 .btn_box {
     display: flex;
     gap: 16px;

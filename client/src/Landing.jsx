@@ -25,6 +25,9 @@ function Landing({ onGo }) {
         <div className="main_wrap">
             <nav className="nav_bar fade_up" style={{ animationDelay: '0.1s' }}>
                 <div className="lg_txt">Tasky</div>
+
+
+                <a href="https://github.com/BGtulk-on/TaskyV2" target="_blank" className="gh_lnk">GitHub</a>
             </nav>
 
             <header className="hero_split">
@@ -71,7 +74,10 @@ function Landing({ onGo }) {
 
 
             <footer className="fade_up" style={{ padding: '32px', opacity: 0.5, fontSize: '14px', animationDelay: '1s' }}>
-                © 2026 Tasky | Made with &lt;3 by <a href="https://bgtulk.dev" target="_blank" style={{ color: 'inherit' }}>BGtulk</a>
+                © 2026 Tasky | Made with &lt;3 by <a href="https://bgtulk.dev" target="_blank" style={{ color: 'inherit' }}>BGtulk</a> | <a href="https://github.com/BGtulk-on/TaskyV2" target="_blank" style={{ color: 'inherit' }}>GitHub Repo</a>
+
+
+
             </footer>
 
         </div>
