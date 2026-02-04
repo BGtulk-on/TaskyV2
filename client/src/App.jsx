@@ -7,6 +7,7 @@ import TaskContext from './context/TaskContext'
 import { Analytics } from "@vercel/analytics/react"
 import './App.css'
 import Landing from './Landing'
+import GuestPage from './GuestPage'
 
 
 function App() {
@@ -24,6 +25,8 @@ function App() {
   const [rootPrjName, setRootPrjName] = useState("")
   const [showSettings, setShowSettings] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+
+  const [showGuest, setShowGuest] = useState(false)
 
   useEffect(() => {
     const reqInt = axios.interceptors.request.use(config => {
@@ -303,8 +306,9 @@ function App() {
 
   const [showLanding, setShowLanding] = useState(true)
 
+  if (showGuest) return <GuestPage onExit={() => setShowGuest(false)} />
   if (!user && showLanding) return <Landing onGo={() => setShowLanding(false)} />
-  if (!user) return <Auth onLogin={handleLogin} />
+  if (!user) return <Auth onLogin={handleLogin} onGuest={() => setShowGuest(true)} />
 
   const treeData = build_tree(dataList)
   const myProjects = treeData.filter(t => t.user_id === user.id)

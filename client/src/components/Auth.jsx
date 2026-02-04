@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
 
-function Auth({ onLogin }) {
+function Auth({ onLogin, onGuest }) {
     const [isLogin, setIsLogin] = useState(true)
     const [isAnimating, setIsAnimating] = useState(false)
     const [isExiting, setIsExiting] = useState(false)
@@ -177,6 +177,17 @@ function Auth({ onLogin }) {
                     onClick={toggleMode}>
                     {isLogin ? "Need account? Sign up" : "Have account? Login"}
                 </div>
+
+                <div style={{ borderTop: "1px solid #333", margin: "16px 0 8px 0" }}></div>
+
+                <button type="button" onClick={onGuest} style={{
+                    width: "100%", padding: "10px", borderRadius: "8px", border: "1px dashed #666",
+                    background: "transparent", color: "#888", fontSize: "12px", cursor: "pointer",
+                    transition: "all 0.2s"
+                }}
+                    className="hover-btn">
+                    Guest Mode (No Sign In)
+                </button>
             </form>
 
             <style>{`
