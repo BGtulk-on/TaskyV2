@@ -5,7 +5,7 @@ import axios from 'axios'
 import { useTaskContext } from '../context/TaskContext'
 
 function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName, canShare = true, parentContributors = [] }) {
-    const { selectedId, pendingParentId, onSelect, submitCtx, onToggle, onDel, onUpdate, onToggleExpanded, openDetailsIds, onDetailsToggle, onShare, prefs, currentUser } = useTaskContext()
+    const { selectedId, pendingParentId, onSelect, submitCtx, onToggle, onDel, onUpdate, onToggleExpanded, openDetailsIds, onDetailsToggle, onShare, prefs, currentUser, reorderedSiblingIds } = useTaskContext()
 
     const allContributors = []
 
@@ -45,6 +45,8 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
     const [isJiggling, setIsJiggling] = useState(false)
     const prevDetailsOpen = useRef(detailsOpen)
     const prevOpen = useRef(open)
+    const prevPriority = useRef(node.priority)
+    const prevIsDone = useRef(node.is_done)
 
     useEffect(() => {
         const justClosedDetails = prevDetailsOpen.current && !detailsOpen
@@ -52,15 +54,29 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
         const hasChildren = node.children && node.children.length > 0
         const justClosedSubs = prevOpen.current && !open && hasChildren
 
-        if ((justClosedDetails || justClosedSubs) && prefs.enableJiggle) {
+        const priorityChanged = prevPriority.current !== node.priority && prevPriority.current !== undefined
+        const doneChanged = prevIsDone.current !== node.is_done && prevIsDone.current !== undefined
+
+        if ((justClosedDetails || justClosedSubs || priorityChanged || doneChanged) && prefs.enableJiggle) {
             setTimeout(() => {
                 setIsJiggling(true)
                 setTimeout(() => setIsJiggling(false), 200)
-            }, 300)
+            }, priorityChanged || doneChanged ? 50 : 300)
         }
         prevDetailsOpen.current = detailsOpen
         prevOpen.current = open
-    }, [detailsOpen, open, node.children])
+        prevPriority.current = node.priority
+        prevIsDone.current = node.is_done
+    }, [detailsOpen, open, node.children, node.priority, node.is_done])
+
+    useEffect(() => {
+        if (reorderedSiblingIds && reorderedSiblingIds.includes(node.id) && prefs.enableJiggle) {
+            setTimeout(() => {
+                setIsJiggling(true)
+                setTimeout(() => setIsJiggling(false), 200)
+            }, 100)
+        }
+    }, [reorderedSiblingIds])
 
     useEffect(() => {
         if (detailsOpen && canShare) {

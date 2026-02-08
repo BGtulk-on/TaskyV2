@@ -111,7 +111,7 @@ function App() {
 
 
   const [prefs, setPrefs] = useState(() => {
-    const defaults = { sort: "newest", moveDone: false, autoNewTask: true, holdDelay: 500, enableJiggle: true }
+    const defaults = { sort: "newest", moveDone: false, autoNewTask: true, holdDelay: 500, enableJiggle: true, autoAssign: false }
     const saved = localStorage.getItem("tasky_prefs")
     return saved ? { ...defaults, ...JSON.parse(saved) } : defaults
   })
@@ -147,6 +147,7 @@ function App() {
   }
 
   const [justDoneIds, setJustDoneIds] = useState([])
+  const [reorderedSiblingIds, setReorderedSiblingIds] = useState([])
 
   function rootNodesSort(nodes) {
     const priorityOrder = { 'High': 0, 'Medium': 1, 'Low': 2 }
@@ -204,7 +205,7 @@ function App() {
         description: '',
         start_date: '',
         end_date: '',
-        assigned_to: '',
+        assigned_to: prefs.autoAssign ? user.username : '',
         links: '',
         notes: '',
         priority: '',
@@ -227,6 +228,11 @@ function App() {
 
   const toggl_stat = (id, status) => {
     const prevStatus = dataList.find(t => t.id === id)?.is_done
+    const task = dataList.find(t => t.id === id)
+    const siblings = dataList.filter(t => t.parent_id === task?.parent_id && t.id !== id).map(t => t.id)
+
+    setReorderedSiblingIds(siblings)
+    setTimeout(() => setReorderedSiblingIds([]), 400)
 
     if (status) {
       setJustDoneIds(prev => [...prev, id])
@@ -250,6 +256,13 @@ function App() {
   }
 
   const update_details = (id, field, value) => {
+    if (field === 'priority') {
+      const task = dataList.find(t => t.id === id)
+      const siblings = dataList.filter(t => t.parent_id === task?.parent_id && t.id !== id).map(t => t.id)
+      setReorderedSiblingIds(siblings)
+      setTimeout(() => setReorderedSiblingIds([]), 400)
+    }
+
     setDtac(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t))
 
     axios.post("/api/update_details", {
@@ -334,7 +347,8 @@ function App() {
     onDetailsToggle: handleToggleDetails,
     onShare: share_task,
     prefs,
-    currentUser: user
+    currentUser: user,
+    reorderedSiblingIds
   }
 
   return (
@@ -537,6 +551,16 @@ function SettingsModal({ user, onUpdate, prefs, onPrefUpdate, onClose }) {
                   <span className="pref-desc">Continue creating tasks after pressing Enter</span>
                 </div>
                 <div className={`toggle ${prefs.autoNewTask ? "active" : ""} ${toggleAnim === 'autoNewTask' ? "jiggle" : ""}`}>
+                  <div className="toggle-knob"></div>
+                </div>
+              </div>
+
+              <div className="pref-item" onClick={() => { onPrefUpdate({ ...prefs, autoAssign: !prefs.autoAssign }); setToggleAnim('autoAssign'); setTimeout(() => setToggleAnim(null), 300) }}>
+                <div className="pref-text">
+                  <span className="pref-label">Auto Assign</span>
+                  <span className="pref-desc">Automatically assign new tasks to yourself</span>
+                </div>
+                <div className={`toggle ${prefs.autoAssign ? "active" : ""} ${toggleAnim === 'autoAssign' ? "jiggle" : ""}`}>
                   <div className="toggle-knob"></div>
                 </div>
               </div>
