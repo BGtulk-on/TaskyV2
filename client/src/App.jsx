@@ -149,6 +149,8 @@ function App() {
   const [justDoneIds, setJustDoneIds] = useState([])
 
   function rootNodesSort(nodes) {
+    const priorityOrder = { 'High': 0, 'Medium': 1, 'Low': 2 }
+
     const sortFn = (a, b) => {
       let pA = 0
       let pB = 0
@@ -159,6 +161,10 @@ function App() {
       }
 
       if (pA !== pB) return pA - pB
+
+      const prioA = priorityOrder[a.priority] ?? 3
+      const prioB = priorityOrder[b.priority] ?? 3
+      if (prioA !== prioB) return prioA - prioB
 
       let res = 0
       if (prefs.sort === 'newest') {
@@ -201,6 +207,7 @@ function App() {
         assigned_to: '',
         links: '',
         notes: '',
+        priority: '',
         contributors: []
       }
       setDtac(prev => [...prev, newT])
@@ -326,7 +333,8 @@ function App() {
     openDetailsIds,
     onDetailsToggle: handleToggleDetails,
     onShare: share_task,
-    prefs
+    prefs,
+    currentUser: user
   }
 
   return (

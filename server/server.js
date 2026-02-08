@@ -303,7 +303,7 @@ app.post("/update_expanded", authenticateToken, async (req, res) => {
 app.post("/update_details", authenticateToken, async (req, res) => {
     try {
         const { id, field, value } = req.body
-        const allowed = ['name', 'description', 'start_date', 'end_date', 'assigned_to', 'links', 'notes']
+        const allowed = ['name', 'description', 'start_date', 'end_date', 'assigned_to', 'links', 'notes', 'priority']
         if (!allowed.includes(field)) return res.status(400).json({ error: "invalid field" })
 
         if (field === 'name' && (checkLen(value, 50) || !value || value.trim() === "")) {
@@ -323,6 +323,7 @@ app.post("/update_details", authenticateToken, async (req, res) => {
         else if (field === 'assigned_to') await sql`UPDATE tsk_list SET assigned_to = ${value} WHERE id = ${id}`
         else if (field === 'links') await sql`UPDATE tsk_list SET links = ${value} WHERE id = ${id}`
         else if (field === 'notes') await sql`UPDATE tsk_list SET notes = ${value} WHERE id = ${id}`
+        else if (field === 'priority') await sql`UPDATE tsk_list SET priority = ${value} WHERE id = ${id}`
 
         res.json({ message: "success" })
     } catch (err) {

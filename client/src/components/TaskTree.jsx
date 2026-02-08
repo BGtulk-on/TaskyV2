@@ -5,9 +5,19 @@ import axios from 'axios'
 import { useTaskContext } from '../context/TaskContext'
 
 function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName, canShare = true, parentContributors = [] }) {
-    const { selectedId, pendingParentId, onSelect, submitCtx, onToggle, onDel, onUpdate, onToggleExpanded, openDetailsIds, onDetailsToggle, onShare, prefs } = useTaskContext()
+    const { selectedId, pendingParentId, onSelect, submitCtx, onToggle, onDel, onUpdate, onToggleExpanded, openDetailsIds, onDetailsToggle, onShare, prefs, currentUser } = useTaskContext()
 
-    const allContributors = [...parentContributors]
+    const allContributors = []
+
+    if (currentUser && !allContributors.find(ex => ex.id === currentUser.id)) {
+        allContributors.push({ id: currentUser.id, username: currentUser.username, profile_pic: currentUser.profile_pic })
+    }
+
+    parentContributors.forEach(c => {
+        if (!allContributors.find(ex => ex.id === c.id)) {
+            allContributors.push(c)
+        }
+    })
     if (node.contributors) {
         node.contributors.forEach(c => {
             if (!allContributors.find(ex => ex.id === c.id)) {
@@ -128,6 +138,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
     const bindAssigned = useLongPress(() => start_edit('assigned_to', node.assigned_to), lpConfig('assigned_to'))
     const bindLinks = useLongPress(() => start_edit('links', node.links), lpConfig('links'))
     const bindNotes = useLongPress(() => start_edit('notes', node.notes), lpConfig('notes'))
+    const bindPriority = useLongPress(() => start_edit('priority', node.priority || ''), lpConfig('priority'))
 
     const handle_add_sub = () => {
         if (newTsk.trim()) {
@@ -274,42 +285,49 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                         margin: 0
                                     }}
                                 />
-                            ) : (
-                                <span style={{
-                                    userSelect: "none",
-                                    WebkitUserSelect: "none",
-                                    MozUserSelect: "none",
-                                    msUserSelect: "none",
-                                    whiteSpace: "pre"
-                                }}>
-                                    {node.name.split('').map((char, i) => {
-                                        const showOrange = isPressing
-                                            ? !initialOpenState.current
-                                            : detailsOpen
-                                        const useLtr = showOrange || (isSelected && !detailsOpen) || node.is_done
+                            ) : (() => {
+                                const isAssignedToMe = currentUser && node.assigned_to && node.assigned_to.split(', ').includes(currentUser.username)
+                                const showWave = isAssignedToMe && !detailsOpen && !node.is_done
 
-                                        const totalDuration = prefs.holdDelay
-                                        const charTransition = 150
-                                        const delayStep = node.name.length > 1
-                                            ? (totalDuration - charTransition) / (node.name.length - 1)
-                                            : 0
+                                return (
+                                    <span
+                                        className={showWave ? "assigned-wave" : ""}
+                                        style={{
+                                            userSelect: "none",
+                                            WebkitUserSelect: "none",
+                                            MozUserSelect: "none",
+                                            msUserSelect: "none",
+                                            whiteSpace: "pre"
+                                        }}>
+                                        {node.name.split('').map((char, i) => {
+                                            const showOrange = isPressing
+                                                ? !initialOpenState.current
+                                                : detailsOpen
+                                            const useLtr = showOrange || (isSelected && !detailsOpen) || node.is_done
 
-                                        return (
-                                            <span key={i} style={{
-                                                color: showOrange ? "#f16a50" : (node.is_done ? "#666" : (isSelected ? "#fff" : "wheat")),
-                                                fontWeight: isSelected ? "bold" : "normal",
-                                                textDecoration: "line-through",
-                                                textDecorationColor: node.is_done ? "currentColor" : "transparent",
-                                                transition: `all ${charTransition}ms ease-out`,
-                                                transitionDelay: useLtr ? `${i * delayStep}ms` : `${(node.name.length - 1 - i) * delayStep}ms`,
-                                                display: "inline-block"
-                                            }}>
-                                                {char}
-                                            </span>
-                                        )
-                                    })}
-                                </span>
-                            )}
+                                            const totalDuration = prefs.holdDelay
+                                            const charTransition = 150
+                                            const delayStep = node.name.length > 1
+                                                ? (totalDuration - charTransition) / (node.name.length - 1)
+                                                : 0
+
+                                            return (
+                                                <span key={i} style={{
+                                                    color: showOrange ? "#f16a50" : (node.is_done ? "#666" : (isSelected ? "#fff" : "wheat")),
+                                                    fontWeight: isSelected ? "bold" : "normal",
+                                                    textDecoration: "line-through",
+                                                    textDecorationColor: node.is_done ? "currentColor" : "transparent",
+                                                    transition: `all ${charTransition}ms ease-out`,
+                                                    transitionDelay: useLtr ? `${i * delayStep}ms` : `${(node.name.length - 1 - i) * delayStep}ms`,
+                                                    display: "inline-block"
+                                                }}>
+                                                    {char}
+                                                </span>
+                                            )
+                                        })}
+                                    </span>
+                                )
+                            })()}
 
 
                             {!detailsOpen && node.contributors && node.contributors.length > 0 && (
@@ -323,7 +341,8 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                             height: "20px",
                                             borderRadius: "50%",
                                             overflow: "hidden",
-                                            border: "1px solid #111",
+                                            border: "2px solid #333",
+                                            outline: "1px solid #111",
                                             marginLeft: i === 0 ? "0px" : "-8px",
                                             zIndex: 4 - i
                                         }}>
@@ -381,7 +400,10 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                     marginLeft: open ? "0px" : "8px",
                                     transform: open ? "translateX(-10px)" : "translateX(0)",
                                     transition: "all 300ms ease-out",
-                                    overflow: "hidden"
+                                    overflow: "hidden",
+                                    flexShrink: 0,
+                                    position: "relative",
+                                    top: "1.5px"
                                 }} />
                             )}
 
@@ -600,6 +622,63 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                             color: pressingField === 'assigned_to' ? "#f16a50" : "inherit"
                                         }}>
                                             {node.assigned_to || "_"}
+                                        </span>}
+                                </div>
+
+                                <div
+                                    {...(!editField && bindPriority())}
+                                    style={{
+                                        padding: "8px",
+                                        borderRadius: "4px",
+                                        cursor: "pointer",
+                                        transition: `all ${prefs.holdDelay}ms ease-out`,
+                                        background: pressingField === 'priority' ? "rgba(241, 106, 80, 0.1)" : "transparent"
+                                    }}
+                                >
+                                    Priority:
+                                    {editField === 'priority' ?
+                                        <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                                            <div style={{ display: "flex", gap: "6px" }}>
+                                                {['High', 'Medium', 'Low'].map(p => (
+                                                    <div
+                                                        key={p}
+                                                        onClick={(e) => { e.stopPropagation(); setEditVal(p) }}
+                                                        style={{
+                                                            padding: "4px 12px",
+                                                            borderRadius: "12px",
+                                                            fontSize: "11px",
+                                                            cursor: "pointer",
+                                                            border: editVal === p ? "1px solid " + (p === 'High' ? "#f55" : p === 'Medium' ? "#fa0" : "#5a5") : "1px solid #444",
+                                                            background: editVal === p ? (p === 'High' ? "rgba(255,85,85,0.2)" : p === 'Medium' ? "rgba(255,170,0,0.2)" : "rgba(85,170,85,0.2)") : "#222",
+                                                            color: editVal === p ? (p === 'High' ? "#f55" : p === 'Medium' ? "#fa0" : "#5a5") : "#888",
+                                                            transition: "all 0.2s"
+                                                        }}
+                                                    >
+                                                        {p}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            <div style={{ textAlign: "right" }}>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); save_edit() }}
+                                                    style={{
+                                                        background: "#f16a50", color: "#fff",
+                                                        border: "none", borderRadius: "4px",
+                                                        padding: "4px 8px", fontSize: "10px",
+                                                        cursor: "pointer", opacity: 0.8
+                                                    }}
+                                                >
+                                                    Done
+                                                </button>
+                                            </div>
+                                        </div>
+                                        :
+                                        <span style={{
+                                            marginLeft: "8px",
+                                            transition: `color ${prefs.holdDelay}ms ease-out`,
+                                            color: pressingField === 'priority' ? "#f16a50" : (node.priority === 'High' ? "#f55" : node.priority === 'Medium' ? "#fa0" : node.priority === 'Low' ? "#5a5" : "inherit")
+                                        }}>
+                                            {node.priority || "_"}
                                         </span>}
                                 </div>
 
