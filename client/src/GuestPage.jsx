@@ -255,6 +255,30 @@ function GuestPage({ onExit }) {
                     </div>
                 </div>
 
+                {isCreatingRoot && (
+                    <div className="new-project-wrap">
+                        <form onSubmit={e => {
+                            e.preventDefault();
+                            if (rootInput.trim()) {
+                                add_task(rootInput)
+                                setRootInput("")
+                            }
+                        }}>
+                            <input
+                                autoFocus
+                                placeholder="New Project..."
+                                className="new-project-input"
+                                value={rootInput}
+                                onChange={e => setRootInput(e.target.value)}
+                                onBlur={() => setIsCreatingRoot(false)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Escape') setIsCreatingRoot(false)
+                                }}
+                            />
+                        </form>
+                    </div>
+                )}
+
                 <div className="prj-list">
                     {treeData.map((node, index) => (
                         <div key={node.id} className="project-item">

@@ -877,15 +877,16 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                             ))}
                                         </div>
 
-                                        <div style={{ display: "flex", gap: "5px" }}>
-                                            <input
-                                                placeholder="Add username..."
-                                                value={contribInput}
-                                                onChange={e => setContribInput(e.target.value)}
-                                                onKeyDown={e => e.key === 'Enter' && handleAddContrib()}
-                                                style={{ background: "transparent", borderBottom: "1px solid #444", borderTop: "none", borderLeft: "none", borderRight: "none", color: "wheat", width: "100%", fontSize: "12px", outline: "none" }}
-                                            />
-                                            <button onClick={handleAddContrib} style={{ color: "#f16a50", background: "transparent", border: "none", cursor: "pointer" }}>+</button>
+                                        <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
+                                            <form onSubmit={e => { e.preventDefault(); handleAddContrib(); }} style={{ flex: 1, display: "flex", gap: "8px" }}>
+                                                <input
+                                                    placeholder="Username..."
+                                                    value={contribInput}
+                                                    onChange={e => setContribInput(e.target.value)}
+                                                    style={{ background: "transparent", borderBottom: "1px solid #444", borderTop: "none", borderLeft: "none", borderRight: "none", color: "wheat", width: "100%", fontSize: "12px", outline: "none" }}
+                                                />
+                                                <button type="submit" style={{ color: "#f16a50", background: "transparent", border: "none", cursor: "pointer" }}>+</button>
+                                            </form>
                                         </div>
                                     </div>
                                 )}
@@ -901,22 +902,23 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                     <div style={{ marginLeft: "20px", padding: "10px", position: "relative" }}>
                         <div style={{ position: "absolute", left: "-18px", top: "-10px", height: "32px", width: "18px", borderBottomLeftRadius: "12px", borderLeft: "2px solid #444", borderBottom: "2px solid #444", background: "transparent" }} />
 
-                        <input
-                            ref={subtaskInputRef}
-                            autoFocus
-                            placeholder="Subtask..."
-                            value={newTsk}
-                            onChange={e => setNewTsk(e.target.value)}
-                            onBlur={() => onSelect(null)}
-                            onKeyDown={e => {
-                                if (e.key === 'Enter') handle_add_sub()
-                                if (e.key === 'Escape') onSelect(null)
-                            }}
-                            style={{
-                                background: "transparent", borderBottom: "1px solid #f16a50",
-                                color: "wheat", width: "200px", fontSize: "inherit", fontFamily: "inherit"
-                            }}
-                        />
+                        <form onSubmit={e => { e.preventDefault(); handle_add_sub(); }} style={{ display: "inline" }}>
+                            <input
+                                ref={subtaskInputRef}
+                                autoFocus
+                                placeholder="Subtask..."
+                                value={newTsk}
+                                onChange={e => setNewTsk(e.target.value)}
+                                onBlur={() => onSelect(null)}
+                                onKeyDown={e => {
+                                    if (e.key === 'Escape') onSelect(null)
+                                }}
+                                style={{
+                                    background: "transparent", borderBottom: "1px solid #f16a50",
+                                    color: "wheat", width: "200px", fontSize: "inherit", fontFamily: "inherit"
+                                }}
+                            />
+                        </form>
                     </div>
                 )
             }

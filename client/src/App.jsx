@@ -398,21 +398,25 @@ function App() {
 
         {isCreatingRoot && (
           <div className="new-project-wrap">
-            <input
-              autoFocus
-              placeholder="New Project..."
-              className="new-project-input"
-              value={rootPrjName}
-              onChange={e => setRootPrjName(e.target.value)}
-              onBlur={() => setIsCreatingRoot(false)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && rootPrjName.trim()) {
-                  add_task(rootPrjName)
-                  setRootPrjName("")
-                }
-                if (e.key === 'Escape') setIsCreatingRoot(false)
-              }}
-            />
+            <form onSubmit={e => {
+              e.preventDefault();
+              if (rootPrjName.trim()) {
+                add_task(rootPrjName)
+                setRootPrjName("")
+              }
+            }}>
+              <input
+                autoFocus
+                placeholder="New Project..."
+                className="new-project-input"
+                value={rootPrjName}
+                onChange={e => setRootPrjName(e.target.value)}
+                onBlur={() => setIsCreatingRoot(false)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setIsCreatingRoot(false)
+                }}
+              />
+            </form>
           </div>
         )}
 
