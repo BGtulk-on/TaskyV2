@@ -1,10 +1,13 @@
 const { neon } = require('@neondatabase/serverless')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
+const { OAuth2Client } = require('google-auth-library')
+const crypto = require('crypto')
 
 const sql = neon(process.env.DATABASE_URL)
 
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret"
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
 const tokenBlacklist = new Set()
 
@@ -114,6 +117,67 @@ module.exports = async (req, res) => {
                 token,
                 user: { id: row.id, username: row.username, email: row.email, profile_pic: row.profile_pic }
             })
+        }
+
+        if (path === '/api/login_google' && method === 'POST') {
+            try {
+                const { token } = req.body;
+                const ticket = await client.verifyIdToken({
+                    idToken: token,
+                    audience: process.env.GOOGLE_CLIENT_ID
+                });
+                const payload = ticket.getPayload();
+                const { email, name, picture } = payload;
+
+                let rows = await sql`SELECT * FROM users WHERE email = ${email}`;
+                let user;
+
+                if (rows.length === 0) {
+                    const password = crypto.randomBytes(16).toString('hex');
+                    const hash = await bcrypt.hash(password, 10);
+
+                    let username = name.replace(/\s+/g, '_').toLowerCase();
+                    if (username.length > 10) username = username.substring(0, 10);
+
+                    let userCheck = await sql`SELECT id FROM users WHERE username = ${username}`;
+                    let suffix = 1;
+                    const baseUsername = username;
+
+                    while (userCheck.length > 0) {
+                        const suffixStr = suffix.toString();
+                        const availableLen = 10 - suffixStr.length;
+                        if (availableLen > 0) {
+                            username = baseUsername.substring(0, availableLen) + suffixStr;
+                        } else {
+                            username = crypto.randomBytes(5).toString('hex').substring(0, 10);
+                        }
+
+                        userCheck = await sql`SELECT id FROM users WHERE username = ${username}`;
+                        suffix++;
+                        if (suffix > 100) break;
+                    }
+
+                    if (userCheck.length > 0) {
+                        username = crypto.randomBytes(5).toString('hex').substring(0, 10);
+                    }
+
+                    const result = await sql`INSERT INTO users (username, email, password, profile_pic) VALUES (${username}, ${email}, ${hash}, ${picture}) RETURNING id`;
+                    user = { id: result[0].id, username, email, profile_pic: picture };
+                } else {
+                    user = rows[0];
+                }
+
+                const appToken = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' });
+
+                return res.json({
+                    message: "success",
+                    token: appToken,
+                    user: { id: user.id, username: user.username, email: user.email, profile_pic: user.profile_pic }
+                });
+            } catch (e) {
+                console.error(e);
+                return res.status(400).json({ error: "Google verify failed" });
+            }
         }
 
 
