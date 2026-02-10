@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import axios from 'axios'
 import TaskTree from './components/TaskTree'
 import Auth from './components/Auth'
@@ -27,6 +27,7 @@ function App() {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const [showGuest, setShowGuest] = useState(false)
+  const lastTap = useRef(0)
 
   useEffect(() => {
     const reqInt = axios.interceptors.request.use(config => {
@@ -363,7 +364,20 @@ function App() {
 
   return (
     <TaskContext.Provider value={ctxVal}>
-      <div className={`main-layout ${isLoggingOut ? "fade-out" : ""}`} onClick={() => { setSelectedId(null); setPendingParentId(null); setIsCreatingRoot(false) }}>
+      <div className={`main-layout ${isLoggingOut ? "fade-out" : ""}`} onClick={() => {
+        const now = Date.now()
+        const laps = now - lastTap.current
+
+        if (laps < 300 && laps > 0) {
+          setIsCreatingRoot(true)
+        } else {
+          setSelectedId(null)
+          setPendingParentId(null)
+          setIsCreatingRoot(false)
+        }
+
+        lastTap.current = now
+      }}>
 
         <div className="app-header">
           <div className="user-info">
@@ -435,11 +449,23 @@ function App() {
         </div>
 
         <div className="hints">
-          <div>* Click background + Enter to add new Project.</div>
-          <div>* Press Enter to add subtask to selected task.</div>
-          <div>* Hold a task for menu.</div>
-          <div>* Hold a content in the detiled menu to edit it.</div>
-          <div>* Click task to show his sub-tasks.</div>
+          {window.innerWidth <= 768 ? (
+            <>
+              <div>* Double tap background for new Project.</div>
+              <div>* Swipe Task to right to add subtask.</div>
+              <div>* Hold a task for menu.</div>
+              <div>* Hold a content in the detiled menu to edit it.</div>
+              <div>* Click task to show/hide his sub-tasks.</div>
+            </>
+          ) : (
+            <>
+              <div>* Click background + Enter to add new Project.</div>
+              <div>* Press Enter to add subtask to selected task.</div>
+              <div>* Hold a task for menu.</div>
+              <div>* Hold a content in the detiled menu to edit it.</div>
+              <div>* Click task to show/hide his sub-tasks.</div>
+            </>
+          )}
         </div>
 
         {showSettings && <SettingsModal user={user} onUpdate={handleLogin} prefs={prefs} onPrefUpdate={setPrefs} onClose={() => setShowSettings(false)} />}
