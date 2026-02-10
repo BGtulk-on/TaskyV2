@@ -162,7 +162,9 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
 
         if (isSwiping.current && deltaX > 0) {
             requestAnimationFrame(() => {
-                setSwipeOffset(Math.min(deltaX, 100))
+                if (isSwiping.current) {
+                    setSwipeOffset(Math.min(deltaX, 100))
+                }
             })
         }
     }
