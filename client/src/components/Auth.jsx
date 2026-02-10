@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import axios from 'axios'
+import { GoogleLogin } from '@react-oauth/google';
 
 function Auth({ onLogin, onGuest }) {
     const [isLogin, setIsLogin] = useState(true)
@@ -66,6 +67,22 @@ function Auth({ onLogin, onGuest }) {
             }
         } catch (e) {
             setErr(e.response?.data?.error || "Error")
+        }
+    }
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        try {
+            const res = await axios.post('/api/login_google', {
+                token: credentialResponse.credential
+            });
+            if (res.data.message === 'success') {
+                setIsExiting(true)
+                setTimeout(() => {
+                    onLogin(res.data.user, res.data.token)
+                }, 450)
+            }
+        } catch (e) {
+            setErr("Google Login Failed")
         }
     }
 
@@ -179,6 +196,17 @@ function Auth({ onLogin, onGuest }) {
                 </div>
 
                 <div style={{ borderTop: "1px solid #333", margin: "16px 0 8px 0" }}></div>
+
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+                    <GoogleLogin
+                        onSuccess={handleGoogleSuccess}
+                        onError={() => {
+                            setErr("Google Login Failed");
+                        }}
+                        theme="filled_black"
+                        shape="pill"
+                    />
+                </div>
 
                 <button type="button" onClick={onGuest} style={{
                     width: "100%", padding: "10px", borderRadius: "8px", border: "1px dashed #666",
