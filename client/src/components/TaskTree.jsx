@@ -5,7 +5,7 @@ import axios from 'axios'
 import { useTaskContext } from '../context/TaskContext'
 
 function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName, canShare = true, parentContributors = [] }) {
-    const { selectedId, pendingParentId, onSelect, submitCtx, onToggle, onDel, onUpdate, onToggleExpanded, openDetailsIds, onDetailsToggle, onShare, prefs, currentUser, reorderedSiblingIds } = useTaskContext()
+    const { selectedId, pendingParentId, onSelect, onSetPendingParent, submitCtx, onToggle, onDel, onUpdate, onToggleExpanded, openDetailsIds, onDetailsToggle, onShare, onRemoveContributor, prefs, currentUser, reorderedSiblingIds } = useTaskContext()
 
     const allContributors = []
 
@@ -47,6 +47,12 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
     const prevOpen = useRef(open)
     const prevPriority = useRef(node.priority)
     const prevIsDone = useRef(node.is_done)
+    const [displayContributors, setDisplayContributors] = useState(node.contributors || [])
+    const [swipeOffset, setSwipeOffset] = useState(0)
+    const touchStartX = useRef(0)
+    const touchStartY = useRef(0)
+    const isSwiping = useRef(false)
+    const subtaskInputRef = useRef(null)
 
     useEffect(() => {
         const justClosedDetails = prevDetailsOpen.current && !detailsOpen
@@ -77,6 +83,21 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
             }, 100)
         }
     }, [reorderedSiblingIds])
+
+    useEffect(() => {
+        const hasContributors = node.contributors && node.contributors.length > 0
+        if (hasContributors) {
+            setDisplayContributors(node.contributors)
+        } else {
+            setTimeout(() => setDisplayContributors([]), 300)
+        }
+    }, [node.contributors])
+
+    useEffect(() => {
+        if (showInput && subtaskInputRef.current) {
+            setTimeout(() => subtaskInputRef.current?.focus(), 100)
+        }
+    }, [showInput])
 
     useEffect(() => {
         if (detailsOpen && canShare) {
@@ -120,8 +141,41 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
     }
 
     const handleRemContrib = (uid) => {
-        axios.post("/api/rem_contr", { task_id: node.id, user_id: uid })
-            .then(() => fetchContrib())
+        if (onRemoveContributor) {
+            onRemoveContributor(node.id, uid).then(() => fetchContrib())
+        }
+    }
+
+    const handleTouchStart = (e) => {
+        touchStartX.current = e.touches[0].clientX
+        touchStartY.current = e.touches[0].clientY
+        isSwiping.current = false
+    }
+
+    const handleTouchMove = (e) => {
+        const deltaX = e.touches[0].clientX - touchStartX.current
+        const deltaY = e.touches[0].clientY - touchStartY.current
+
+        if (!isSwiping.current && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+            isSwiping.current = true
+        }
+
+        if (isSwiping.current && deltaX > 0) {
+            requestAnimationFrame(() => {
+                setSwipeOffset(Math.min(deltaX, 100))
+            })
+        }
+    }
+
+    const handleTouchEnd = () => {
+        if (swipeOffset > 80 && onSetPendingParent) {
+            onSelect(node.id)
+            onSetPendingParent(node.id)
+            setIsJiggling(true)
+            setTimeout(() => setIsJiggling(false), 400)
+        }
+        setSwipeOffset(0)
+        isSwiping.current = false
     }
 
     const bind = useLongPress(() => {
@@ -254,6 +308,9 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
 
                     <div
                         {...bind()}
+                        onTouchStart={handleTouchStart}
+                        onTouchMove={handleTouchMove}
+                        onTouchEnd={handleTouchEnd}
                         className={isJiggling ? "impact-jiggle" : ""}
                         onClick={(e) => {
                             e.stopPropagation();
@@ -274,7 +331,11 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                             background: "transparent",
                             width: "fit-content",
                             minWidth: "150px",
-                            cursor: "pointer"
+                            cursor: "pointer",
+                            transform: `translateX(${swipeOffset}px)`,
+                            transition: swipeOffset === 0 ? "transform 200ms ease-out" : "none",
+                            touchAction: "pan-y",
+                            willChange: swipeOffset > 0 ? "transform" : "auto"
                         }}
                     >
                         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -346,31 +407,41 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                             })()}
 
 
-                            {!detailsOpen && node.contributors && node.contributors.length > 0 && (
-                                <div
-                                    title={node.contributors.map(c => c.username).join(', ')}
-                                    style={{ display: "flex", marginLeft: "4px", alignItems: "center", cursor: "default" }}
-                                >
-                                    {node.contributors.slice(0, 4).map((c, i) => (
-                                        <div key={i} style={{
-                                            width: "20px",
-                                            height: "20px",
-                                            borderRadius: "50%",
-                                            overflow: "hidden",
-                                            border: "2px solid #333",
-                                            outline: "1px solid #111",
-                                            marginLeft: i === 0 ? "0px" : "-8px",
-                                            zIndex: 4 - i
-                                        }}>
-                                            {c.profile_pic ?
-                                                <img src={c.profile_pic} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                                                : <div style={{ width: "100%", height: "100%", background: "#333" }} />
-                                            }
-                                        </div>
-                                    ))}
-                                    {node.contributors.length > 4 && <span style={{ fontSize: "10px", color: "#666", marginLeft: "4px" }}>+{node.contributors.length - 4}</span>}
-                                </div>
-                            )}
+                            <div
+                                style={{
+                                    display: "flex",
+                                    marginLeft: (node.contributors && node.contributors.length > 0) ? "4px" : "0px",
+                                    alignItems: "center",
+                                    cursor: "default",
+                                    opacity: (node.contributors && node.contributors.length > 0) ? 1 : 0,
+                                    maxWidth: (node.contributors && node.contributors.length > 0) ? "200px" : "0px",
+                                    transform: (node.contributors && node.contributors.length > 0) ? "scale(1)" : "scale(0.8)",
+                                    transition: "all 300ms ease-out",
+                                    overflow: "hidden",
+                                    height: "24px"
+                                }}
+                                title={node.contributors ? node.contributors.map(c => c.username).join(', ') : ""}
+                            >
+                                {displayContributors.slice(0, 4).map((c, i) => (
+                                    <div key={i} style={{
+                                        width: "20px",
+                                        height: "20px",
+                                        borderRadius: "50%",
+                                        overflow: "hidden",
+                                        border: "2px solid #333",
+                                        outline: "1px solid #111",
+                                        marginLeft: i === 0 ? "0px" : "-8px",
+                                        zIndex: 4 - i,
+                                        flexShrink: 0
+                                    }}>
+                                        {c.profile_pic ?
+                                            <img src={c.profile_pic} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                                            : <div style={{ width: "100%", height: "100%", background: "#333" }} />
+                                        }
+                                    </div>
+                                ))}
+                                {displayContributors.length > 4 && <span style={{ fontSize: "10px", color: "#666", marginLeft: "4px", whiteSpace: "nowrap" }}>+{displayContributors.length - 4}</span>}
+                            </div>
 
 
                             {node.end_date && !node.is_done && (
@@ -583,7 +654,15 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                 >
                                     Assigned:
                                     {editField === 'assigned_to' ?
-                                        <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                                        <div
+                                            tabIndex={0}
+                                            style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px", outline: "none" }}
+                                            onBlur={(e) => {
+                                                if (!e.currentTarget.contains(e.relatedTarget)) {
+                                                    save_edit()
+                                                }
+                                            }}
+                                        >
                                             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
                                                 {allContributors.map(c => {
                                                     const currentList = editVal ? editVal.split(', ').filter(x => x) : []
@@ -617,19 +696,6 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                                     )
                                                 })}
                                             </div>
-                                            <div style={{ textAlign: "right" }}>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); save_edit() }}
-                                                    style={{
-                                                        background: "#f16a50", color: "#fff",
-                                                        border: "none", borderRadius: "4px",
-                                                        padding: "4px 8px", fontSize: "10px",
-                                                        cursor: "pointer", opacity: 0.8
-                                                    }}
-                                                >
-                                                    Done
-                                                </button>
-                                            </div>
                                         </div>
                                         :
                                         <span style={{
@@ -653,7 +719,15 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                 >
                                     Priority:
                                     {editField === 'priority' ?
-                                        <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
+                                        <div
+                                            tabIndex={0}
+                                            style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px", outline: "none" }}
+                                            onBlur={(e) => {
+                                                if (!e.currentTarget.contains(e.relatedTarget)) {
+                                                    save_edit()
+                                                }
+                                            }}
+                                        >
                                             <div style={{ display: "flex", gap: "6px" }}>
                                                 {['High', 'Medium', 'Low'].map(p => (
                                                     <div
@@ -673,19 +747,6 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                                         {p}
                                                     </div>
                                                 ))}
-                                            </div>
-                                            <div style={{ textAlign: "right" }}>
-                                                <button
-                                                    onClick={(e) => { e.stopPropagation(); save_edit() }}
-                                                    style={{
-                                                        background: "#f16a50", color: "#fff",
-                                                        border: "none", borderRadius: "4px",
-                                                        padding: "4px 8px", fontSize: "10px",
-                                                        cursor: "pointer", opacity: 0.8
-                                                    }}
-                                                >
-                                                    Done
-                                                </button>
                                             </div>
                                         </div>
                                         :
@@ -830,49 +891,54 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                 </div>
             </div>
 
-            {showInput && (
-                <div style={{ marginLeft: "20px", padding: "10px", position: "relative" }}>
-                    <div style={{ position: "absolute", left: "-18px", top: "-10px", height: "32px", width: "18px", borderBottomLeftRadius: "12px", borderLeft: "2px solid #444", borderBottom: "2px solid #444", background: "transparent" }} />
+            {
+                showInput && (
+                    <div style={{ marginLeft: "20px", padding: "10px", position: "relative" }}>
+                        <div style={{ position: "absolute", left: "-18px", top: "-10px", height: "32px", width: "18px", borderBottomLeftRadius: "12px", borderLeft: "2px solid #444", borderBottom: "2px solid #444", background: "transparent" }} />
 
-                    <input
-                        autoFocus
-                        placeholder="Subtask..."
-                        value={newTsk}
-                        onChange={e => setNewTsk(e.target.value)}
-                        onBlur={() => onSelect(null)}
-                        onKeyDown={e => {
-                            if (e.key === 'Enter') handle_add_sub()
-                            if (e.key === 'Escape') onSelect(null)
-                        }}
-                        style={{
-                            background: "transparent", borderBottom: "1px solid #f16a50",
-                            color: "wheat", width: "200px", fontSize: "inherit", fontFamily: "inherit"
-                        }}
-                    />
-                </div>
-            )}
-
-            {node.children && node.children.length > 0 && (
-                <div style={{
-                    display: "grid",
-                    gridTemplateRows: open ? "1fr" : "0fr",
-                    transition: "grid-template-rows 350ms ease-in-out"
-                }}>
-                    <div style={{ overflow: "hidden" }}>
-                        {node.children.map((child, index) => (
-                            <TaskTree
-                                key={child.id}
-                                node={child}
-                                isLast={index === node.children.length - 1}
-                                canShare={canShare}
-                                parentContributors={allContributors}
-                            />
-                        ))}
+                        <input
+                            ref={subtaskInputRef}
+                            autoFocus
+                            placeholder="Subtask..."
+                            value={newTsk}
+                            onChange={e => setNewTsk(e.target.value)}
+                            onBlur={() => onSelect(null)}
+                            onKeyDown={e => {
+                                if (e.key === 'Enter') handle_add_sub()
+                                if (e.key === 'Escape') onSelect(null)
+                            }}
+                            style={{
+                                background: "transparent", borderBottom: "1px solid #f16a50",
+                                color: "wheat", width: "200px", fontSize: "inherit", fontFamily: "inherit"
+                            }}
+                        />
                     </div>
-                </div>
-            )}
+                )
+            }
 
-        </div>
+            {
+                node.children && node.children.length > 0 && (
+                    <div style={{
+                        display: "grid",
+                        gridTemplateRows: open ? "1fr" : "0fr",
+                        transition: "grid-template-rows 350ms ease-in-out"
+                    }}>
+                        <div style={{ overflow: "hidden" }}>
+                            {node.children.map((child, index) => (
+                                <TaskTree
+                                    key={child.id}
+                                    node={child}
+                                    isLast={index === node.children.length - 1}
+                                    canShare={canShare}
+                                    parentContributors={allContributors}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                )
+            }
+
+        </div >
     )
 }
 

@@ -287,6 +287,14 @@ function App() {
       })
   }
 
+  const remove_contributor = (task_id, user_id) => {
+    return axios.post("/api/rem_contr", { task_id, user_id })
+      .then(res => {
+        load_data()
+        return res
+      })
+  }
+
   const del_it = (id) => {
     const toDel = []
     const findChildren = (pid) => {
@@ -338,6 +346,7 @@ function App() {
     selectedId,
     pendingParentId,
     onSelect: (id) => { setSelectedId(id); if (id === null) setPendingParentId(null); },
+    onSetPendingParent: (id) => setPendingParentId(id),
     submitCtx: add_task,
     onToggle: toggl_stat,
     onDel: del_it,
@@ -346,6 +355,7 @@ function App() {
     openDetailsIds,
     onDetailsToggle: handleToggleDetails,
     onShare: share_task,
+    onRemoveContributor: remove_contributor,
     prefs,
     currentUser: user,
     reorderedSiblingIds
