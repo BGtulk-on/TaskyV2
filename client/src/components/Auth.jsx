@@ -111,7 +111,7 @@ function Auth({ onLogin, onGuest }) {
                 <Input
                     placeholder="Username"
                     value={form.username}
-                    onChange={e => setForm({ ...form, username: e.target.value })}
+                    onChange={e => { setForm({ ...form, username: e.target.value }); setErr(""); }}
                 />
 
                 {!isLogin && (
@@ -123,7 +123,7 @@ function Auth({ onLogin, onGuest }) {
                             placeholder="Email"
                             value={form.email}
                             type="email"
-                            onChange={e => setForm({ ...form, email: e.target.value })}
+                            onChange={e => { setForm({ ...form, email: e.target.value }); setErr(""); }}
                         />
                         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                             <label htmlFor="file-upload" className="hover-btn" style={{
@@ -165,21 +165,47 @@ function Auth({ onLogin, onGuest }) {
                     onChange={e => {
                         const newPass = e.target.value
                         setForm({ ...form, password: newPass })
+                        setErr("")
                     }}
                 />
 
                 {!isLogin && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", paddingLeft: "4px" }}>
-                        <RuleItem active={form.password.length >= 8} text="At least 8 characters" />
-                        <RuleItem active={/[A-Z]/.test(form.password)} text="One uppercase letter" />
-                        <RuleItem active={/[a-z]/.test(form.password)} text="One lowercase letter" />
-                        <RuleItem active={/[0-9]/.test(form.password)} text="One number" />
-                        <RuleItem active={/[^A-Za-z0-9]/.test(form.password)} text="One special symbol" />
-                        <RuleItem active={form.username.length > 0 && form.username.length <= 10} text="Username max 10 chars" />
+                    <div style={{ minHeight: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                        {(() => {
+                            const rules = [
+                                { valid: form.username.length > 0 && form.username.length <= 10, text: "Username: 1-10 characters" },
+                                { valid: form.password.length >= 8, text: "Password: At least 8 characters" },
+                                { valid: /[A-Z]/.test(form.password), text: "Password: One uppercase letter" },
+                                { valid: /[a-z]/.test(form.password), text: "Password: One lowercase letter" },
+                                { valid: /[0-9]/.test(form.password), text: "Password: One number" },
+                                { valid: /[^A-Za-z0-9]/.test(form.password), text: "Password: One special symbol" },
+                            ]
+
+                            if (err) {
+                                return (
+                                    <div style={{ color: "#f55", fontSize: "11px", animation: "shake 0.3s linear" }}>
+                                        • {err}
+                                    </div>
+                                )
+                            }
+
+                            const next = rules.find(r => !r.valid)
+
+                            if (next) {
+                                return (
+                                    <div key={next.text} style={{ color: "#f16a50", fontSize: "11px", animation: "fadeIn 0.3s" }}>
+                                        • {next.text}
+                                    </div>
+                                )
+                            }
+                            return (
+                                <div style={{ color: "#4caf50", fontSize: "11px", animation: "fadeIn 0.3s" }}>
+                                    ✓ All requirements met
+                                </div>
+                            )
+                        })()}
                     </div>
                 )}
-
-                {err && <div style={{ color: "#f55", fontSize: "12px", animation: "shake 0.3s linear" }}>{err}</div>}
 
                 <button className="submit-btn" style={{
                     padding: "12px", borderRadius: "8px", border: "none",
@@ -198,14 +224,17 @@ function Auth({ onLogin, onGuest }) {
                 <div style={{ borderTop: "1px solid #333", margin: "16px 0 8px 0" }}></div>
 
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
-                    <GoogleLogin
-                        onSuccess={handleGoogleSuccess}
-                        onError={() => {
-                            setErr("Google Login Failed");
-                        }}
-                        theme="filled_black"
-                        shape="pill"
-                    />
+                    <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                        <GoogleLogin
+                            onSuccess={handleGoogleSuccess}
+                            onError={() => {
+                                setErr("Google Login Failed");
+                            }}
+                            theme="filled_black"
+                            shape="pill"
+                            width="250"
+                        />
+                    </div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
@@ -213,10 +242,10 @@ function Auth({ onLogin, onGuest }) {
                         const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
                         window.location.href = `https://github.com/login/oauth/authorize?client_id=${clientId}&scope=user:email`;
                     }} style={{
-                        display: 'flex', alignItems: 'center', gap: '10px',
+                        display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center',
                         padding: '10px 20px', borderRadius: '20px', border: '1px solid #333',
                         background: '#24292e', color: 'white', cursor: 'pointer',
-                        fontSize: '14px', fontWeight: '500'
+                        fontSize: '14px', fontWeight: '500', width: '100%', boxSizing: 'border-box'
                     }}>
                         <svg height="20" viewBox="0 0 16 16" version="1.1" width="20" aria-hidden="true" fill="currentColor">
                             <path fillRule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
@@ -255,6 +284,22 @@ function Auth({ onLogin, onGuest }) {
                 .submit-btn:hover { filter: brightness(1.1); }
                 .submit-btn:active { transform: scale(0.98); }
                 .hover-btn:hover { background: #1a1a1a !important; border-color: #555 !important; color: #888 !important; }
+
+                @media (max-width: 480px) {
+                    form {
+                        width: 90% !important;
+                        padding: 20px !important; 
+                    }
+                }
+                
+                @media (max-height: 800px) {
+                    form {
+                        padding: 16px !important;
+                        gap: 8px !important;
+                        max-height: 90vh;
+                        overflow-y: auto;
+                    }
+                }
             `}</style>
         </div>
     )
