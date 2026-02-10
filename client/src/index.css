@@ -20,7 +20,18 @@ body {
 
 * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
+
+input,
+textarea {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
 
 /* scroll bar */
 /* scroll bar hidden */
