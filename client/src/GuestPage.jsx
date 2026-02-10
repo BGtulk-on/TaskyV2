@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import TaskTree from './components/TaskTree'
 import TaskContext from './context/TaskContext'
 import './App.css'
@@ -34,6 +34,7 @@ function GuestPage({ onExit }) {
     const [justDoneIds, setJustDoneIds] = useState([])
     const [isCreatingRoot, setIsCreatingRoot] = useState(false)
     const [rootInput, setRootInput] = useState("")
+    const lastTap = useRef(0)
 
 
 
@@ -198,6 +199,7 @@ function GuestPage({ onExit }) {
         onToggleExpanded: toggle_expanded,
         openDetailsIds,
         onDetailsToggle: handleToggleDetails,
+        onSetPendingParent: (id) => setPendingParentId(id),
         onShare: share_task,
         prefs,
         currentUser: guestUser,
@@ -229,7 +231,20 @@ function GuestPage({ onExit }) {
 
     return (
         <TaskContext.Provider value={ctxVal}>
-            <div className="main-layout" onClick={() => { setSelectedId(null); setPendingParentId(null); setIsCreatingRoot(false) }}>
+            <div className="main-layout" onClick={() => {
+                const now = Date.now()
+                const laps = now - lastTap.current
+
+                if (laps < 300 && laps > 0) {
+                    setIsCreatingRoot(true)
+                } else {
+                    setSelectedId(null)
+                    setPendingParentId(null)
+                    setIsCreatingRoot(false)
+                }
+
+                lastTap.current = now
+            }}>
 
                 <div className="app-header" style={{ background: "#222" }}>
                     <div className="user-info">
@@ -256,10 +271,23 @@ function GuestPage({ onExit }) {
                         <div>* This is a temporary session. Changes are not saved.</div>
                         <div>* To see all the features, please sign in!</div>
                         <br></br>
-                        <div>* Press Enter to add subtask to selected task.</div>
-                        <div>* Hold a task for menu.</div>
-                        <div>* Hold a content in the detiled menu to edit it.</div>
-                        <div>* Click task to show his sub-tasks.</div>
+                        {window.innerWidth <= 768 ? (
+                            <>
+                                <div>* Double tap background for new Project.</div>
+                                <div>* Swipe Task to right to add subtask.</div>
+                                <div>* Hold a task for menu.</div>
+                                <div>* Hold a content in the detiled menu to edit it.</div>
+                                <div>* Click task to show/hide his sub-tasks.</div>
+                            </>
+                        ) : (
+                            <>
+                                <div>* Click background + Enter to add new Project.</div>
+                                <div>* Press Enter to add subtask to selected task.</div>
+                                <div>* Hold a task for menu.</div>
+                                <div>* Hold a content in the detiled menu to edit it.</div>
+                                <div>* Click task to show/hide his sub-tasks.</div>
+                            </>
+                        )}
                     </div>
                 </div>
 
