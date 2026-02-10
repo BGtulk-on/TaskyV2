@@ -650,3 +650,37 @@
     transform: rotate(180deg) scale(1);
   }
 }
+
+.markdown-desc p {
+  margin: 0 0 8px 0;
+}
+
+.markdown-desc p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-desc ul,
+.markdown-desc ol {
+  padding-left: 20px;
+  margin: 4px 0;
+}
+
+.markdown-desc li {
+  margin-bottom: 2px;
+}
+
+.markdown-desc a {
+  color: var(--acsent, #f16a50);
+  text-decoration: underline;
+}
+
+.markdown-desc code {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 0.9em;
+}
+
+.markdown-desc strong {
+  color: #fff;
+}

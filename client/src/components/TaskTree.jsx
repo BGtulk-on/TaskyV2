@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useLongPress } from 'use-long-press'
 import axios from 'axios'
 import { useTaskContext } from '../context/TaskContext'
+import ReactMarkdown from 'react-markdown'
 
 function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName, canShare = true, parentContributors = [] }) {
     const { selectedId, pendingParentId, onSelect, onSetPendingParent, submitCtx, onToggle, onDel, onUpdate, onToggleExpanded, openDetailsIds, onDetailsToggle, onShare, onRemoveContributor, prefs, currentUser, reorderedSiblingIds } = useTaskContext()
@@ -561,8 +562,10 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                                 transition: `color ${prefs.holdDelay}ms ease-out`,
                                                 color: pressingField === 'description' ? "#f16a50" : "inherit",
                                                 whiteSpace: "pre-wrap"
-                                            }}>
-                                                {node.description || "Add description..."}
+                                            }} className="markdown-desc">
+                                                {node.description ?
+                                                    <ReactMarkdown children={node.description} />
+                                                    : "Add description..."}
                                             </div>
                                         )}
                                 </div>
