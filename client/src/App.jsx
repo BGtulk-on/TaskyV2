@@ -27,6 +27,7 @@ function App() {
   const [isLoggingOut, setIsLoggingOut] = useState(false)
 
   const [showGuest, setShowGuest] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const lastTap = useRef(0)
 
   useEffect(() => {
@@ -123,11 +124,16 @@ function App() {
 
   function load_data() {
     if (!token) return
+    setIsLoading(true)
     axios.get(`/api/get_all`)
       .then(res => {
         setDtac(res.data.data)
+        setIsLoading(false)
       })
-      .catch(err => console.log(err))
+      .catch(err => {
+        console.log(err)
+        setIsLoading(false)
+      })
   }
 
 
@@ -441,33 +447,43 @@ function App() {
         )}
 
         <div className="prj-list">
-          {myProjects.map((node, index) => (
-            <div key={node.id} className="project-item">
-              <TaskTree
-                node={node}
-                isRoot={true}
-                isLast={index === myProjects.length - 1}
-                canShare={true}
-              />
+          {isLoading ? (
+            <div className="loading-container">
+              <div className="loading-dot"></div>
+              <div className="loading-dot"></div>
+              <div className="loading-dot"></div>
             </div>
-          ))}
-
-          {sharedProjects.length > 0 && (
+          ) : (
             <>
-              <div className="shared-divider" />
-              <div className="shared-label">Shared with me:</div>
-              {sharedProjects.map((node, index) => (
+              {myProjects.map((node, index) => (
                 <div key={node.id} className="project-item">
                   <TaskTree
-                    ownerName={node.owner_name}
-                    projectName={node.project_name && node.project_name !== node.name ? node.project_name : null}
                     node={node}
                     isRoot={true}
-                    isLast={index === sharedProjects.length - 1}
-                    canShare={false}
+                    isLast={index === myProjects.length - 1}
+                    canShare={true}
                   />
                 </div>
               ))}
+
+              {sharedProjects.length > 0 && (
+                <>
+                  <div className="shared-divider" />
+                  <div className="shared-label">Shared with me:</div>
+                  {sharedProjects.map((node, index) => (
+                    <div key={node.id} className="project-item">
+                      <TaskTree
+                        ownerName={node.owner_name}
+                        projectName={node.project_name && node.project_name !== node.name ? node.project_name : null}
+                        node={node}
+                        isRoot={true}
+                        isLast={index === sharedProjects.length - 1}
+                        canShare={false}
+                      />
+                    </div>
+                  ))}
+                </>
+              )}
             </>
           )}
         </div>
