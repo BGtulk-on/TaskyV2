@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const { OAuth2Client } = require('google-auth-library')
 const crypto = require('crypto')
+const axios = require('axios')
 
 const sql = neon(process.env.DATABASE_URL)
 
@@ -178,6 +179,91 @@ module.exports = async (req, res) => {
             } catch (e) {
                 console.error(e)
                 return res.status(400).json({ error: "Google verify failed" })
+            }
+        }
+
+        if (path === '/api/login_github' && method === 'POST') {
+            const { code } = req.body
+            const client_id = process.env.GITHUB_CLIENT_ID
+            const client_secret = process.env.GITHUB_CLIENT_SECRET
+
+            try {
+                const tokenRes = await axios.post(`https://github.com/login/oauth/access_token?client_id=${client_id}&client_secret=${client_secret}&code=${code}`, {}, {
+                    headers: { Accept: 'application/json' }
+                })
+
+                if (tokenRes.data.error) {
+                    return res.status(400).json({ error: tokenRes.data.error_description || "GitHub login failed" })
+                }
+
+                const accessToken = tokenRes.data.access_token
+
+                const userRes = await axios.get('https://api.github.com/user', {
+                    headers: { Authorization: `token ${accessToken}` }
+                })
+
+                // get emails
+                const emailsRes = await axios.get('https://api.github.com/user/emails', {
+                    headers: { Authorization: `token ${accessToken}` }
+                })
+
+                const primaryEmail = emailsRes.data.find(e => e.primary && e.verified)?.email || (emailsRes.data.length > 0 ? emailsRes.data[0].email : null)
+
+                if (!primaryEmail) {
+                    return res.status(400).json({ error: "No email access on GitHub account" })
+                }
+
+                const { login: username_gh, avatar_url } = userRes.data
+
+                let rows = await sql`SELECT * FROM users WHERE email = ${primaryEmail}`
+                let user
+
+                if (rows.length === 0) {
+                    // Register
+                    const password = crypto.randomBytes(16).toString('hex')
+                    const hash = await bcrypt.hash(password, 10)
+
+                    let username = username_gh.replace(/\s+/g, '_').toLowerCase()
+                    if (username.length > 10) username = username.substring(0, 10)
+
+                    let userCheck = await sql`SELECT id FROM users WHERE username = ${username}`
+                    let suffix = 1
+                    const baseUsername = username
+
+                    while (userCheck.length > 0) {
+                        const suffixStr = suffix.toString()
+                        const availableLen = 10 - suffixStr.length
+                        if (availableLen > 0) {
+                            username = baseUsername.substring(0, availableLen) + suffixStr
+                        } else {
+                            username = crypto.randomBytes(5).toString('hex').substring(0, 10)
+                        }
+
+                        userCheck = await sql`SELECT id FROM users WHERE username = ${username}`
+                        suffix++;
+                        if (suffix > 100) break;
+                    }
+
+                    if (userCheck.length > 0) {
+                        username = crypto.randomBytes(5).toString('hex').substring(0, 10)
+                    }
+
+                    const result = await sql`INSERT INTO users (username, email, password, profile_pic) VALUES (${username}, ${primaryEmail}, ${hash}, ${avatar_url}) RETURNING id`
+                    user = { id: result[0].id, username, email: primaryEmail, profile_pic: avatar_url }
+                } else {
+                    user = rows[0]
+                }
+
+                const appToken = jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: '7d' })
+
+                return res.json({
+                    message: "success",
+                    token: appToken,
+                    user: { id: user.id, username: user.username, email: user.email, profile_pic: user.profile_pic }
+                })
+            } catch (e) {
+                console.error(e)
+                return res.status(500).json({ error: "GitHub login server error" })
             }
         }
 

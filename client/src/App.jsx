@@ -58,6 +58,26 @@ function App() {
   }, [user, token])
 
   useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    if (code) {
+      // Clear code from URL
+      window.history.replaceState({}, document.title, "/");
+
+      axios.post('/api/login_github', { code })
+        .then(res => {
+          if (res.data.message === "success") {
+            handleLogin(res.data.user, res.data.token)
+          }
+        })
+        .catch(err => {
+          console.error("Github login failed", err);
+          // Optionally set an error state here to show in UI
+        })
+    }
+  }, [])
+
+  useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
         setIsCreatingRoot(false)

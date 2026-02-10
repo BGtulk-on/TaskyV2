@@ -14,6 +14,7 @@
   "type": "commonjs",
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
+    "axios": "^1.13.5",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
