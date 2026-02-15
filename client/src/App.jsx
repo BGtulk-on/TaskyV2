@@ -61,7 +61,8 @@ function App() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    if (code) {
+    if (code && !lastTap.current) {
+       lastTap.current = 1 // Prevent double fire
       // Clear code from URL
       window.history.replaceState({}, document.title, "/");
 
@@ -533,7 +534,7 @@ function SettingsModal({ user, onUpdate, prefs, onPrefUpdate, onClose }) {
   const handleFile = (e) => {
     const file = e.target.files[0]
     if (!file) return
-    if (file.size > 5 * 1024 * 1024) return setMsg("File > 5MB")
+    if (file.size > 4 * 1024 * 1024) return setMsg("File > 4MB")
 
     const reader = new FileReader()
     reader.onloadend = () => setEditForm({ ...editForm, profile_pic: reader.result })
@@ -552,7 +553,13 @@ function SettingsModal({ user, onUpdate, prefs, onPrefUpdate, onClose }) {
         setMsg("Profile Updated!")
         onUpdate({ ...user, username: editForm.username, profile_pic: editForm.profile_pic })
       }
-    }).catch(err => setMsg(err.response?.data?.error || "Error updating"))
+    }).catch(err => {
+      if (err.response?.status === 413) {
+        setMsg("Image too large (Server limit)")
+      } else {
+        setMsg(err.response?.data?.error || "Error updating (" + (err.response?.status || "Net") + ")")
+      }
+    })
   }
 
   return (
