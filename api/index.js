@@ -454,6 +454,35 @@ module.exports = async (req, res) => {
             return res.json({ message: "deleted" })
         }
 
+        if (path === '/api/tree_digest' && method === 'GET') {
+            const result = await sql`
+                WITH RECURSIVE
+                shared_roots AS (
+                    SELECT t.id FROM tsk_list t
+                    JOIN task_shares ts ON t.id = ts.task_id
+                    WHERE ts.user_id = ${user_id}
+                ),
+                shared_tree AS (
+                    SELECT t.id, t.name, t.is_done, t.priority, t.description
+                    FROM tsk_list t WHERE t.id IN (SELECT id FROM shared_roots)
+                    UNION ALL
+                    SELECT t.id, t.name, t.is_done, t.priority, t.description
+                    FROM tsk_list t
+                    JOIN shared_tree st ON t.parent_id = st.id
+                ),
+                all_visible AS (
+                    SELECT id, name, is_done, priority, description FROM tsk_list WHERE user_id = ${user_id}
+                    UNION
+                    SELECT id, name, is_done, priority, description FROM shared_tree
+                )
+                SELECT md5(COALESCE(string_agg(
+                    id::text || '|' || COALESCE(name,'') || '|' || COALESCE(is_done::text,'0') || '|' || COALESCE(priority,'') || '|' || COALESCE(description,''),
+                    ',' ORDER BY id
+                ), '')) as digest
+                FROM all_visible`
+            return res.json({ digest: result[0]?.digest || '' })
+        }
+
         return res.status(404).json({ error: "Not found" })
 
     } catch (err) {
