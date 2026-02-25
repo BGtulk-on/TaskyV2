@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import axios from 'axios'
-import { io } from 'socket.io-client'
 import TaskTree from './components/TaskTree'
 import Auth from './components/Auth'
 import TaskContext from './context/TaskContext'
@@ -30,7 +29,8 @@ function App() {
   const [showGuest, setShowGuest] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [treeStale, setTreeStale] = useState(false)
-  const socketRef = useRef(null)
+  const digestRef = useRef(null)
+  const lastMutateRef = useRef(0)
   const lastTap = useRef(0)
   const ghCodeUsed = useRef(false)
 
@@ -65,17 +65,25 @@ function App() {
   useEffect(() => {
     if (!token) return
 
-    const sock = io({ auth: { token } })
-    socketRef.current = sock
-
-    sock.on('tree_changed', () => {
-      setTreeStale(true)
-    })
-
-    return () => {
-      sock.disconnect()
-      socketRef.current = null
+    const poll = () => {
+      axios.get('/api/tree_digest').then(res => {
+        const d = res.data.digest
+        if (digestRef.current === null) {
+          digestRef.current = d
+          return
+        }
+        if (d !== digestRef.current) {
+          if (Date.now() - lastMutateRef.current > 5000) {
+            setTreeStale(true)
+          }
+          digestRef.current = d
+        }
+      }).catch(() => { })
     }
+
+    poll()
+    const timer = setInterval(poll, 15000)
+    return () => clearInterval(timer)
   }, [token])
 
   useEffect(() => {
@@ -240,6 +248,7 @@ function App() {
   }
 
   const add_task = (name, parent_id = null) => {
+    lastMutateRef.current = Date.now()
     axios.post("/api/add_tsk", {
       name: name,
       parent_id: parent_id
@@ -274,6 +283,7 @@ function App() {
   }
 
   const toggl_stat = (id, status) => {
+    lastMutateRef.current = Date.now()
     const prevStatus = dataList.find(t => t.id === id)?.is_done
     const task = dataList.find(t => t.id === id)
     const siblings = dataList.filter(t => t.parent_id === task?.parent_id && t.id !== id).map(t => t.id)
@@ -303,6 +313,7 @@ function App() {
   }
 
   const update_details = (id, field, value) => {
+    lastMutateRef.current = Date.now()
     if (field === 'priority') {
       const task = dataList.find(t => t.id === id)
       const siblings = dataList.filter(t => t.parent_id === task?.parent_id && t.id !== id).map(t => t.id)
@@ -327,6 +338,7 @@ function App() {
   }
 
   const share_task = (task_id, username) => {
+    lastMutateRef.current = Date.now()
     return axios.post("/api/share_task", { task_id, username })
       .then(res => {
         load_data()
@@ -335,6 +347,7 @@ function App() {
   }
 
   const remove_contributor = (task_id, uid) => {
+    lastMutateRef.current = Date.now()
     return axios.post("/api/rem_contr", { task_id, user_id: uid })
       .then(res => {
         setDtac(prev => prev.map(t => {
@@ -346,6 +359,7 @@ function App() {
   }
 
   const del_it = (id) => {
+    lastMutateRef.current = Date.now()
     const toDel = []
     const findChildren = (pid) => {
       dataList.filter(t => t.parent_id === pid).forEach(c => {
@@ -550,7 +564,11 @@ function App() {
         {treeStale && (
           <div className="update-toast" onClick={e => e.stopPropagation()}>
             <span>the tree is updated</span>
-            <button className="update-toast-btn" onClick={() => { load_data(); setTreeStale(false) }}>update</button>
+            <button className="update-toast-btn" onClick={() => {
+              load_data()
+              setTreeStale(false)
+              axios.get('/api/tree_digest').then(r => { digestRef.current = r.data.digest }).catch(() => { })
+            }}>update</button>
           </div>
         )}
 
