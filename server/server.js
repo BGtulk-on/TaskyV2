@@ -7,6 +7,8 @@ require('dotenv').config()
 const { neon } = require('@neondatabase/serverless')
 const { OAuth2Client } = require('google-auth-library')
 const axios = require('axios')
+const http = require('http')
+const { Server: SocketServer } = require('socket.io')
 
 const helmet = require('helmet')
 const rateLimit = require('express-rate-limit')
@@ -19,6 +21,16 @@ if (!process.env.DATABASE_URL) {
 const sql = neon(process.env.DATABASE_URL)
 
 const app = express()
+const server = http.createServer(app)
+
+const io = new SocketServer(server, {
+    cors: {
+        origin: ["http://localhost:5173"],
+        methods: ["GET", "POST"],
+        credentials: true
+    }
+})
+
 app.use(helmet({
     crossOriginResourcePolicy: false,
 }))
@@ -78,6 +90,75 @@ function authenticateToken(req, res, next) {
         next()
     })
 }
+
+
+const userSockets = new Map()
+
+io.use((socket, next) => {
+    const tkn = socket.handshake.auth.token
+    if (!tkn) return next(new Error("no token"))
+
+    jwt.verify(tkn, JWT_SECRET, (err, decoded) => {
+        if (err) return next(new Error("bad token"))
+        socket.userId = decoded.id
+        next()
+    })
+})
+
+io.on('connection', (socket) => {
+    const uid = socket.userId
+    if (!userSockets.has(uid)) userSockets.set(uid, new Set())
+    userSockets.get(uid).add(socket.id)
+
+    socket.on('disconnect', () => {
+        const set = userSockets.get(uid)
+        if (set) {
+            set.delete(socket.id)
+            if (set.size === 0) userSockets.delete(uid)
+        }
+    })
+})
+
+async function getAffectedUsers(taskId) {
+    try {
+        const ancestors = await sql`
+            WITH RECURSIVE chain AS (
+                SELECT id, parent_id, user_id FROM tsk_list WHERE id = ${taskId}
+                UNION ALL
+                SELECT t.id, t.parent_id, t.user_id FROM tsk_list t
+                JOIN chain c ON t.id = c.parent_id
+            )
+            SELECT id, user_id FROM chain WHERE parent_id IS NULL`
+
+        if (ancestors.length === 0) return []
+
+        const rootId = ancestors[0].id
+        const ownerId = ancestors[0].user_id
+
+        const shared = await sql`SELECT user_id FROM task_shares WHERE task_id = ${rootId}`
+        const ids = new Set([ownerId, ...shared.map(s => s.user_id)])
+        return [...ids]
+    } catch (e) {
+        console.error("getAffectedUsers err:", e)
+        return []
+    }
+}
+
+function notifyOthers(affectedUserIds, excludeUserId) {
+    for (const uid of affectedUserIds) {
+        if (uid === excludeUserId) continue
+        const socks = userSockets.get(uid)
+        if (!socks) continue
+        for (const sid of socks) {
+            io.to(sid).emit('tree_changed')
+        }
+    }
+}
+
+function emitTreeUpdate(taskId, excludeUserId) {
+    getAffectedUsers(taskId).then(ids => notifyOthers(ids, excludeUserId)).catch(() => { })
+}
+
 
 app.post("/register", async (req, res) => {
     try {
@@ -144,7 +225,6 @@ app.post("/login_google", async (req, res) => {
         let user;
 
         if (rows.length === 0) {
-            // Register
             const password = crypto.randomBytes(16).toString('hex');
             const hash = await bcrypt.hash(password, 10);
 
@@ -213,7 +293,6 @@ app.post("/login_github", async (req, res) => {
             headers: { Authorization: `token ${accessToken}` }
         })
 
-        // get emails
         const emailsRes = await axios.get('https://api.github.com/user/emails', {
             headers: { Authorization: `token ${accessToken}` }
         })
@@ -230,7 +309,6 @@ app.post("/login_github", async (req, res) => {
         let user
 
         if (rows.length === 0) {
-            // Register
             const password = crypto.randomBytes(16).toString('hex')
             const hash = await bcrypt.hash(password, 10)
 
@@ -381,6 +459,9 @@ app.post("/share_task", authenticateToken, async (req, res) => {
         if (existingShare.length > 0) return res.status(400).json({ error: "Already shared with user" })
 
         await sql`INSERT INTO task_shares (task_id, user_id) VALUES (${task_id}, ${target_uid})`
+
+        emitTreeUpdate(task_id, req.user.id)
+
         res.json({ message: "success" })
     } catch (err) {
         console.error(err)
@@ -410,6 +491,8 @@ app.post("/rem_contr", authenticateToken, async (req, res) => {
         if (task.length === 0) return res.status(404).json({ error: "Task not found" })
         if (task[0].user_id !== req.user.id) return res.status(403).json({ error: "Not authorized" })
 
+        emitTreeUpdate(task_id, req.user.id)
+
         await sql`DELETE FROM task_shares WHERE task_id = ${task_id} AND user_id = ${user_id}`
         res.json({ message: "deleted" })
     } catch (err) {
@@ -428,7 +511,11 @@ app.post("/add_tsk", authenticateToken, async (req, res) => {
         if (checkLen(name, 50)) return res.status(400).json({ error: "Name too long (max 50)" })
 
         const result = await sql`INSERT INTO tsk_list (name, parent_id, user_id) VALUES (${name}, ${parent_id}, ${user_id}) RETURNING id`
-        res.json({ message: "success", data: { name, parent_id, user_id }, id: result[0].id })
+        const newId = result[0].id
+
+        if (parent_id) emitTreeUpdate(parent_id, req.user.id)
+
+        res.json({ message: "success", data: { name, parent_id, user_id }, id: newId })
     } catch (err) {
         console.error(err)
         res.status(500).json({ error: "Failed to add task" })
@@ -439,6 +526,9 @@ app.post("/update_status", authenticateToken, async (req, res) => {
     try {
         const { id, is_done } = req.body
         await sql`UPDATE tsk_list SET is_done = ${is_done} WHERE id = ${id}`
+
+        emitTreeUpdate(id, req.user.id)
+
         res.json({ message: "success" })
     } catch (err) {
         console.error(err)
@@ -482,6 +572,8 @@ app.post("/update_details", authenticateToken, async (req, res) => {
         else if (field === 'notes') await sql`UPDATE tsk_list SET notes = ${value} WHERE id = ${id}`
         else if (field === 'priority') await sql`UPDATE tsk_list SET priority = ${value} WHERE id = ${id}`
 
+        emitTreeUpdate(id, req.user.id)
+
         res.json({ message: "success" })
     } catch (err) {
         console.error(err)
@@ -496,6 +588,8 @@ app.post("/del_tsk", authenticateToken, async (req, res) => {
         const task = await sql`SELECT user_id FROM tsk_list WHERE id = ${id}`
         if (task.length === 0) return res.status(404).json({ error: "Task not found" })
         if (task[0].user_id !== req.user.id) return res.status(403).json({ error: "Only owner can delete" })
+
+        emitTreeUpdate(id, req.user.id)
 
         await sql`
             WITH RECURSIVE SubTasks AS (
@@ -514,6 +608,6 @@ app.post("/del_tsk", authenticateToken, async (req, res) => {
 })
 
 const PORT = process.env.PORT || 3001
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })

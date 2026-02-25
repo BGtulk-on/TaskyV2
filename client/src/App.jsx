@@ -1,6 +1,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import axios from 'axios'
+import { io } from 'socket.io-client'
 import TaskTree from './components/TaskTree'
 import Auth from './components/Auth'
 import TaskContext from './context/TaskContext'
@@ -28,6 +29,8 @@ function App() {
 
   const [showGuest, setShowGuest] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [treeStale, setTreeStale] = useState(false)
+  const socketRef = useRef(null)
   const lastTap = useRef(0)
   const ghCodeUsed = useRef(false)
 
@@ -58,6 +61,22 @@ function App() {
   useEffect(() => {
     if (user && token) load_data()
   }, [user, token])
+
+  useEffect(() => {
+    if (!token) return
+
+    const sock = io({ auth: { token } })
+    socketRef.current = sock
+
+    sock.on('tree_changed', () => {
+      setTreeStale(true)
+    })
+
+    return () => {
+      sock.disconnect()
+      socketRef.current = null
+    }
+  }, [token])
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -527,6 +546,13 @@ function App() {
         </div>
 
         {showSettings && <SettingsModal user={user} onUpdate={handleProfileUpdate} prefs={prefs} onPrefUpdate={setPrefs} onClose={() => setShowSettings(false)} />}
+
+        {treeStale && (
+          <div className="update-toast" onClick={e => e.stopPropagation()}>
+            <span>the tree is updated</span>
+            <button className="update-toast-btn" onClick={() => { load_data(); setTreeStale(false) }}>update</button>
+          </div>
+        )}
 
         <Analytics />
       </div>

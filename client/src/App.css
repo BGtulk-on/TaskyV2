@@ -685,7 +685,6 @@
   color: #fff;
 }
 
-/* Loading Dots Animation */
 .loading-container {
   display: flex;
   justify-content: center;
@@ -719,4 +718,51 @@
   100% {
     transform: translateY(-10px);
   }
+}
+
+@keyframes toastSlideUp {
+  from {
+    transform: translateX(-50%) translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
+.update-toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  z-index: 999;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  animation: toastSlideUp 0.35s ease-out;
+  color: #bbb;
+  font-size: 14px;
+}
+
+.update-toast-btn {
+  background: transparent;
+  border: 1.5px solid #f16a50;
+  color: #f16a50;
+  padding: 6px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: background 0.2s, color 0.2s;
+}
+
+.update-toast-btn:hover {
+  background: #f16a50;
+  color: #fff;
 }
