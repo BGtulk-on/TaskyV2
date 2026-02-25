@@ -313,10 +313,15 @@ app.get("/get_all", authenticateToken, async (req, res) => {
             FROM Descendants d
             LEFT JOIN users u ON d.user_id = u.id`
 
-        const allShares = await sql`
-            SELECT ts.task_id, u.id, u.username, u.profile_pic 
-            FROM task_shares ts 
-            JOIN users u ON ts.user_id = u.id`
+        const allTaskIds = [...new Set([...myRows.map(r => r.id), ...sharedRows.map(r => r.id)])]
+
+        const allShares = allTaskIds.length > 0
+            ? await sql`
+                SELECT ts.task_id, u.id, u.username, u.profile_pic 
+                FROM task_shares ts 
+                JOIN users u ON ts.user_id = u.id
+                WHERE ts.task_id = ANY(${allTaskIds})`
+            : []
 
         const sharesMap = {}
         allShares.forEach(s => {

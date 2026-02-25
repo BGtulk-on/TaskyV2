@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import axios from 'axios'
 import TaskTree from './components/TaskTree'
 import Auth from './components/Auth'
@@ -29,6 +29,7 @@ function App() {
   const [showGuest, setShowGuest] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const lastTap = useRef(0)
+  const ghCodeUsed = useRef(false)
 
   useEffect(() => {
     const reqInt = axios.interceptors.request.use(config => {
@@ -61,9 +62,8 @@ function App() {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    if (code && !lastTap.current) {
-       lastTap.current = 1 // Prevent double fire
-      // Clear code from URL
+    if (code && !ghCodeUsed.current) {
+      ghCodeUsed.current = true
       window.history.replaceState({}, document.title, "/");
 
       axios.post('/api/login_github', { code })
@@ -74,7 +74,7 @@ function App() {
         })
         .catch(err => {
           console.error("Github login failed", err);
-          // Optionally set an error state here to show in UI
+          ghCodeUsed.current = false
         })
     }
   }, [])
@@ -315,10 +315,13 @@ function App() {
       })
   }
 
-  const remove_contributor = (task_id, user_id) => {
-    return axios.post("/api/rem_contr", { task_id, user_id })
+  const remove_contributor = (task_id, uid) => {
+    return axios.post("/api/rem_contr", { task_id, user_id: uid })
       .then(res => {
-        load_data()
+        setDtac(prev => prev.map(t => {
+          if (t.id !== task_id) return t
+          return { ...t, contributors: (t.contributors || []).filter(c => c.id !== uid) }
+        }))
         return res
       })
   }
@@ -334,10 +337,16 @@ function App() {
     toDel.push(id)
     findChildren(id)
 
+    const backup = dataList.filter(t => toDel.includes(t.id))
+
     setDtac(prev => prev.filter(t => !toDel.includes(t.id)))
     if (selectedId === id) setSelectedId(null)
 
     axios.post("/api/del_tsk", { id: id })
+      .catch(err => {
+        console.warn("delete failed, restoring tasks", err)
+        setDtac(prev => [...prev, ...backup])
+      })
   }
 
 
@@ -360,21 +369,29 @@ function App() {
     }, 400)
   }
 
+  const handleProfileUpdate = (updatedUser) => {
+    setUser(updatedUser)
+    localStorage.setItem("tasky_user", JSON.stringify(updatedUser))
+  }
+
   const [showLanding, setShowLanding] = useState(true)
 
   if (showGuest) return <GuestPage onExit={() => setShowGuest(false)} />
   if (!user && showLanding) return <Landing onGo={() => setShowLanding(false)} />
   if (!user) return <Auth onLogin={handleLogin} onGuest={() => setShowGuest(true)} />
 
-  const treeData = build_tree(dataList)
-  const myProjects = treeData.filter(t => t.user_id === user.id)
-  const sharedProjects = treeData.filter(t => t.user_id !== user.id)
+  const treeData = useMemo(() => build_tree(dataList), [dataList, prefs.sort, prefs.moveDone, justDoneIds])
+  const myProjects = useMemo(() => treeData.filter(t => t.user_id === user.id), [treeData, user.id])
+  const sharedProjects = useMemo(() => treeData.filter(t => t.user_id !== user.id), [treeData, user.id])
 
-  const ctxVal = {
+  const onSelect = useCallback((id) => { setSelectedId(id); if (id === null) setPendingParentId(null); }, [])
+  const onSetPendingParent = useCallback((id) => setPendingParentId(id), [])
+
+  const ctxVal = useMemo(() => ({
     selectedId,
     pendingParentId,
-    onSelect: (id) => { setSelectedId(id); if (id === null) setPendingParentId(null); },
-    onSetPendingParent: (id) => setPendingParentId(id),
+    onSelect,
+    onSetPendingParent,
     submitCtx: add_task,
     onToggle: toggl_stat,
     onDel: del_it,
@@ -387,7 +404,7 @@ function App() {
     prefs,
     currentUser: user,
     reorderedSiblingIds
-  }
+  }), [selectedId, pendingParentId, openDetailsIds, prefs, user, reorderedSiblingIds])
 
   return (
     <TaskContext.Provider value={ctxVal}>
@@ -395,7 +412,7 @@ function App() {
         const now = Date.now()
         const laps = now - lastTap.current
 
-        if (laps < 300 && laps > 0) {
+        if (laps < 300 && laps > 0 && window.innerWidth <= 768) {
           setIsCreatingRoot(true)
         } else {
           setSelectedId(null)
@@ -509,7 +526,7 @@ function App() {
           )}
         </div>
 
-        {showSettings && <SettingsModal user={user} onUpdate={handleLogin} prefs={prefs} onPrefUpdate={setPrefs} onClose={() => setShowSettings(false)} />}
+        {showSettings && <SettingsModal user={user} onUpdate={handleProfileUpdate} prefs={prefs} onPrefUpdate={setPrefs} onClose={() => setShowSettings(false)} />}
 
         <Analytics />
       </div>

@@ -14,6 +14,10 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
         allContributors.push({ id: currentUser.id, username: currentUser.username, profile_pic: currentUser.profile_pic })
     }
 
+    if (node.user_id && node.owner_name && !allContributors.find(ex => ex.id === node.user_id)) {
+        allContributors.push({ id: node.user_id, username: node.owner_name })
+    }
+
     parentContributors.forEach(c => {
         if (!allContributors.find(ex => ex.id === c.id)) {
             allContributors.push(c)
@@ -909,7 +913,7 @@ function TaskTree({ node, isRoot = false, isLast = false, ownerName, projectName
                                 placeholder="Subtask..."
                                 value={newTsk}
                                 onChange={e => setNewTsk(e.target.value)}
-                                onBlur={() => onSelect(null)}
+                                onBlur={() => { setNewTsk(""); onSelect(null) }}
                                 onKeyDown={e => {
                                     if (e.key === 'Escape') onSelect(null)
                                 }}

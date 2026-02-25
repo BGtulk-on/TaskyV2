@@ -57,7 +57,8 @@ function db_run_init() {
                 { name: 'assigned_to', type: 'TEXT', def: "DEFAULT ''" },
                 { name: 'links', type: 'TEXT', def: "DEFAULT ''" },
                 { name: 'notes', type: 'TEXT', def: "DEFAULT ''" },
-                { name: 'user_id', type: 'INTEGER', def: 'DEFAULT 0' }
+                { name: 'user_id', type: 'INTEGER', def: 'DEFAULT 0' },
+                { name: 'priority', type: 'TEXT', def: "DEFAULT ''" }
             ]
 
             cols.forEach(c => {

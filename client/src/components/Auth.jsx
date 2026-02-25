@@ -13,6 +13,7 @@ function Auth({ onLogin, onGuest }) {
         profile_pic: ""
     })
     const [err, setErr] = useState("")
+    const [loading, setLoading] = useState(false)
 
     const toggleMode = () => {
         setIsAnimating(true)
@@ -55,6 +56,7 @@ function Auth({ onLogin, onGuest }) {
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setErr("Invalid email format")
         }
 
+        setLoading(true)
         try {
             const url = isLogin ? "/api/login" : "/api/register"
             const res = await axios.post(url, form)
@@ -67,6 +69,8 @@ function Auth({ onLogin, onGuest }) {
             }
         } catch (e) {
             setErr(e.response?.data?.error || "Error")
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -207,13 +211,20 @@ function Auth({ onLogin, onGuest }) {
                     </div>
                 )}
 
-                <button className="submit-btn" style={{
+                {isLogin && err && (
+                    <div style={{ color: "#f55", fontSize: "11px", textAlign: "center", animation: "shake 0.3s linear" }}>
+                        • {err}
+                    </div>
+                )}
+
+                <button className="submit-btn" disabled={loading} style={{
                     padding: "12px", borderRadius: "8px", border: "none",
-                    background: "#f16a50", color: "#fff", fontWeight: "bold",
-                    marginTop: "8px", cursor: "pointer",
-                    transition: "transform 0.1s, filter 0.2s"
+                    background: loading ? "#8a4035" : "#f16a50", color: "#fff", fontWeight: "bold",
+                    marginTop: "8px", cursor: loading ? "not-allowed" : "pointer",
+                    transition: "transform 0.1s, filter 0.2s, background 0.2s",
+                    opacity: loading ? 0.7 : 1
                 }}>
-                    {isLogin ? "Enter" : "Create Account"}
+                    {loading ? "..." : (isLogin ? "Enter" : "Create Account")}
                 </button>
 
                 <div style={{ textAlign: "center", fontSize: "12px", color: "#666", cursor: "pointer", marginTop: "16px", userSelect: "none" }}

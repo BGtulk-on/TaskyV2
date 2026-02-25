@@ -42,7 +42,8 @@ async function initDb() {
         end_date TEXT DEFAULT '',
         assigned_to TEXT DEFAULT '',
         links TEXT DEFAULT '',
-        notes TEXT DEFAULT ''
+        notes TEXT DEFAULT '',
+        priority TEXT DEFAULT ''
     )`
 }
 
@@ -306,10 +307,15 @@ module.exports = async (req, res) => {
                 FROM Descendants d
                 LEFT JOIN users u ON d.user_id = u.id`
 
-            const allShares = await sql`
-                SELECT ts.task_id, u.id, u.username, u.profile_pic 
-                FROM task_shares ts 
-                JOIN users u ON ts.user_id = u.id`
+            const allTaskIds = [...new Set([...myRows.map(r => r.id), ...sharedRows.map(r => r.id)])]
+
+            const allShares = allTaskIds.length > 0
+                ? await sql`
+                    SELECT ts.task_id, u.id, u.username, u.profile_pic 
+                    FROM task_shares ts 
+                    JOIN users u ON ts.user_id = u.id
+                    WHERE ts.task_id = ANY(${allTaskIds})`
+                : []
 
             const sharesMap = {}
             allShares.forEach(s => {
@@ -349,7 +355,7 @@ module.exports = async (req, res) => {
 
         if (path === '/api/update_details' && method === 'POST') {
             const { id, field, value } = req.body
-            const allowed = ['name', 'description', 'start_date', 'end_date', 'assigned_to', 'links', 'notes']
+            const allowed = ['name', 'description', 'start_date', 'end_date', 'assigned_to', 'links', 'notes', 'priority']
             if (!allowed.includes(field)) return res.status(400).json({ error: "invalid field" })
 
             if (field === 'name' && (checkLen(value, 50) || !value || value.trim() === "")) {
@@ -363,7 +369,8 @@ module.exports = async (req, res) => {
                 end_date: sql`UPDATE tsk_list SET end_date = ${value} WHERE id = ${id}`,
                 assigned_to: sql`UPDATE tsk_list SET assigned_to = ${value} WHERE id = ${id}`,
                 links: sql`UPDATE tsk_list SET links = ${value} WHERE id = ${id}`,
-                notes: sql`UPDATE tsk_list SET notes = ${value} WHERE id = ${id}`
+                notes: sql`UPDATE tsk_list SET notes = ${value} WHERE id = ${id}`,
+                priority: sql`UPDATE tsk_list SET priority = ${value} WHERE id = ${id}`
             }
 
             await queries[field]
