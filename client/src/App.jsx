@@ -73,8 +73,6 @@ function App() {
   useEffect(() => {
     if (!token) return
 
-    digestRef.current = null
-
     const poll = () => {
       if (skipNextDigest.current) return
       axios.get('/api/tree_digest').then(res => {
@@ -399,6 +397,7 @@ function App() {
 
   const handleLogout = () => {
     setIsLoggingOut(true)
+    digestRef.current = null
     setTimeout(() => {
       setUser(null)
       setToken(null)
