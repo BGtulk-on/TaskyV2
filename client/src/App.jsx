@@ -73,6 +73,8 @@ function App() {
   useEffect(() => {
     if (!token) return
 
+    digestRef.current = null
+
     const poll = () => {
       if (skipNextDigest.current) return
       axios.get('/api/tree_digest').then(res => {
@@ -414,13 +416,9 @@ function App() {
 
   const [showLanding, setShowLanding] = useState(true)
 
-  if (showGuest) return <GuestPage onExit={() => setShowGuest(false)} />
-  if (!user && showLanding) return <Landing onGo={() => setShowLanding(false)} />
-  if (!user) return <Auth onLogin={handleLogin} onGuest={() => setShowGuest(true)} />
-
   const treeData = useMemo(() => build_tree(dataList), [dataList, prefs.sort, prefs.moveDone, justDoneIds])
-  const myProjects = useMemo(() => treeData.filter(t => t.user_id === user.id), [treeData, user.id])
-  const sharedProjects = useMemo(() => treeData.filter(t => t.user_id !== user.id), [treeData, user.id])
+  const myProjects = useMemo(() => user ? treeData.filter(t => t.user_id === user.id) : [], [treeData, user])
+  const sharedProjects = useMemo(() => user ? treeData.filter(t => t.user_id !== user.id) : [], [treeData, user])
 
   const onSelect = useCallback((id) => { setSelectedId(id); if (id === null) setPendingParentId(null); }, [])
   const onSetPendingParent = useCallback((id) => setPendingParentId(id), [])
@@ -443,6 +441,10 @@ function App() {
     currentUser: user,
     reorderedSiblingIds
   }), [selectedId, pendingParentId, openDetailsIds, prefs, user, reorderedSiblingIds])
+
+  if (showGuest) return <GuestPage onExit={() => setShowGuest(false)} />
+  if (!user && showLanding) return <Landing onGo={() => setShowLanding(false)} />
+  if (!user) return <Auth onLogin={handleLogin} onGuest={() => setShowGuest(true)} />
 
   return (
     <TaskContext.Provider value={ctxVal}>
