@@ -30,9 +30,17 @@ function App() {
   const [isLoading, setIsLoading] = useState(false)
   const [treeStale, setTreeStale] = useState(false)
   const digestRef = useRef(null)
-  const lastMutateRef = useRef(0)
+  const skipNextDigest = useRef(false)
   const lastTap = useRef(0)
   const ghCodeUsed = useRef(false)
+
+  const resyncDigest = () => {
+    skipNextDigest.current = true
+    axios.get('/api/tree_digest').then(r => {
+      digestRef.current = r.data.digest
+      skipNextDigest.current = false
+    }).catch(() => { skipNextDigest.current = false })
+  }
 
   useEffect(() => {
     const reqInt = axios.interceptors.request.use(config => {
@@ -66,6 +74,7 @@ function App() {
     if (!token) return
 
     const poll = () => {
+      if (skipNextDigest.current) return
       axios.get('/api/tree_digest').then(res => {
         const d = res.data.digest
         if (digestRef.current === null) {
@@ -73,9 +82,7 @@ function App() {
           return
         }
         if (d !== digestRef.current) {
-          if (Date.now() - lastMutateRef.current > 5000) {
-            setTreeStale(true)
-          }
+          setTreeStale(true)
           digestRef.current = d
         }
       }).catch(() => { })
@@ -248,7 +255,6 @@ function App() {
   }
 
   const add_task = (name, parent_id = null) => {
-    lastMutateRef.current = Date.now()
     axios.post("/api/add_tsk", {
       name: name,
       parent_id: parent_id
@@ -268,6 +274,7 @@ function App() {
         contributors: []
       }
       setDtac(prev => [...prev, newT])
+      resyncDigest()
 
       if (prefs.autoNewTask) {
         if (parent_id) {
@@ -283,7 +290,6 @@ function App() {
   }
 
   const toggl_stat = (id, status) => {
-    lastMutateRef.current = Date.now()
     const prevStatus = dataList.find(t => t.id === id)?.is_done
     const task = dataList.find(t => t.id === id)
     const siblings = dataList.filter(t => t.parent_id === task?.parent_id && t.id !== id).map(t => t.id)
@@ -302,7 +308,7 @@ function App() {
     axios.post("/api/update_status", {
       id: id,
       is_done: status
-    }).catch(err => {
+    }).then(() => { resyncDigest() }).catch(err => {
       setDtac(prev => prev.map(t => t.id === id ? { ...t, is_done: prevStatus } : t))
       if (prevStatus) {
         setJustDoneIds(prev => [...prev, id])
@@ -313,7 +319,6 @@ function App() {
   }
 
   const update_details = (id, field, value) => {
-    lastMutateRef.current = Date.now()
     if (field === 'priority') {
       const task = dataList.find(t => t.id === id)
       const siblings = dataList.filter(t => t.parent_id === task?.parent_id && t.id !== id).map(t => t.id)
@@ -325,7 +330,7 @@ function App() {
 
     axios.post("/api/update_details", {
       id, field, value
-    })
+    }).then(() => { resyncDigest() })
   }
 
   const toggle_expanded = (id, val) => {
@@ -338,28 +343,27 @@ function App() {
   }
 
   const share_task = (task_id, username) => {
-    lastMutateRef.current = Date.now()
     return axios.post("/api/share_task", { task_id, username })
       .then(res => {
         load_data()
+        resyncDigest()
         return res
       })
   }
 
   const remove_contributor = (task_id, uid) => {
-    lastMutateRef.current = Date.now()
     return axios.post("/api/rem_contr", { task_id, user_id: uid })
       .then(res => {
         setDtac(prev => prev.map(t => {
           if (t.id !== task_id) return t
           return { ...t, contributors: (t.contributors || []).filter(c => c.id !== uid) }
         }))
+        resyncDigest()
         return res
       })
   }
 
   const del_it = (id) => {
-    lastMutateRef.current = Date.now()
     const toDel = []
     const findChildren = (pid) => {
       dataList.filter(t => t.parent_id === pid).forEach(c => {
@@ -376,6 +380,7 @@ function App() {
     if (selectedId === id) setSelectedId(null)
 
     axios.post("/api/del_tsk", { id: id })
+      .then(() => { resyncDigest() })
       .catch(err => {
         console.warn("delete failed, restoring tasks", err)
         setDtac(prev => [...prev, ...backup])
@@ -563,12 +568,23 @@ function App() {
 
         {treeStale && (
           <div className="update-toast" onClick={e => e.stopPropagation()}>
-            <span>the tree is updated</span>
+            <div className="update-toast-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="23 4 23 10 17 10" />
+                <polyline points="1 20 1 14 7 14" />
+                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+              </svg>
+            </div>
+            <div className="update-toast-text">
+              <span className="update-toast-title">Tree updated</span>
+              <span className="update-toast-sub">Changes detected from another session</span>
+            </div>
             <button className="update-toast-btn" onClick={() => {
               load_data()
               setTreeStale(false)
-              axios.get('/api/tree_digest').then(r => { digestRef.current = r.data.digest }).catch(() => { })
-            }}>update</button>
+              resyncDigest()
+            }}>Refresh</button>
+            <button className="update-toast-dismiss" onClick={() => setTreeStale(false)}>✕</button>
           </div>
         )}
 
