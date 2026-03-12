@@ -288,10 +288,21 @@ app.get("/get_all", authenticateToken, async (req, res) => {
         const user_id = req.user.id
 
         const myRows = await sql`
-            SELECT t.*, u.username as owner_name 
-            FROM tsk_list t 
-            LEFT JOIN users u ON t.user_id = u.id
-            WHERE t.user_id = ${user_id}`
+            WITH RECURSIVE
+            OwnRoots AS (
+                SELECT t.*
+                FROM tsk_list t
+                WHERE t.user_id = ${user_id} AND t.parent_id IS NULL
+            ),
+            OwnTree AS (
+                SELECT t.* FROM tsk_list t WHERE t.user_id = ${user_id}
+                UNION ALL
+                SELECT t.* FROM tsk_list t
+                JOIN OwnTree ot ON t.parent_id = ot.id
+            )
+            SELECT DISTINCT ot.*, u.username as owner_name
+            FROM OwnTree ot
+            LEFT JOIN users u ON ot.user_id = u.id`
 
         const sharedRows = await sql`
             WITH RECURSIVE 
@@ -521,17 +532,26 @@ app.get("/tree_digest", authenticateToken, async (req, res) => {
                 WHERE ts.user_id = ${uid}
             ),
             shared_tree AS (
-                SELECT t.id, t.name, t.is_done, t.priority, t.description
+                SELECT t.id, t.name, t.is_done, t.priority, t.description, t.parent_id
                 FROM tsk_list t WHERE t.id IN (SELECT id FROM shared_roots)
                 UNION ALL
-                SELECT t.id, t.name, t.is_done, t.priority, t.description
+                SELECT t.id, t.name, t.is_done, t.priority, t.description, t.parent_id
                 FROM tsk_list t
                 JOIN shared_tree st ON t.parent_id = st.id
             ),
-            all_visible AS (
+            own_tree AS (
                 SELECT id, name, is_done, priority, description FROM tsk_list WHERE user_id = ${uid}
-                UNION
-                SELECT id, name, is_done, priority, description FROM shared_tree
+                UNION ALL
+                SELECT t.id, t.name, t.is_done, t.priority, t.description
+                FROM tsk_list t
+                JOIN own_tree ot ON t.parent_id = ot.id
+            ),
+            all_visible AS (
+                SELECT DISTINCT id, name, is_done, priority, description FROM (
+                    SELECT id, name, is_done, priority, description FROM own_tree
+                    UNION ALL
+                    SELECT id, name, is_done, priority, description FROM shared_tree
+                ) t
             )
             SELECT md5(COALESCE(string_agg(
                 id::text || '|' || COALESCE(name,'') || '|' || COALESCE(is_done::text,'0') || '|' || COALESCE(priority,'') || '|' || COALESCE(description,''),
