@@ -63,17 +63,6 @@ function App() {
   }, [user, token])
 
   useEffect(() => {
-    if (dataList.length > 0) {
-      console.log("[DATA_LIST] Total:", dataList.length)
-      console.log("[DATA_LIST] Owned:", dataList.filter(t => t.user_id === user?.id).length)
-      console.log("[DATA_LIST] Shared:", dataList.filter(t => t.user_id !== user?.id).length)
-      console.log("[DATA_LIST] Roots:", dataList.filter(t => !t.parent_id).length)
-      console.log("[DATA_LIST] Subtasks:", dataList.filter(t => t.parent_id).length)
-      console.log("[DATA_LIST] Orphans (parent missing):", dataList.filter(t => t.parent_id && !dataList.find(p => p.id === t.parent_id)).length)
-    }
-  }, [dataList, user])
-
-  useEffect(() => {
     if (!token) return
 
     const poll = () => {
@@ -166,7 +155,6 @@ function App() {
     setIsLoading(true)
     axios.get(`/api/get_all`)
       .then(res => {
-        console.log("[LOAD_DATA] Axios Result Count:", res.data.data.length)
         setDtac(res.data.data)
         setIsLoading(false)
       })

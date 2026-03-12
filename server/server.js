@@ -338,25 +338,9 @@ app.get("/get_all", authenticateToken, async (req, res) => {
             sharesMap[s.task_id].push(s)
         })
 
-        const totalInDb = await sql`SELECT COUNT(*) FROM tsk_list`
-        const othersInDb = await sql`SELECT COUNT(*) FROM tsk_list WHERE user_id != ${user_id}`
-        
-        console.log(`[GET_ALL] User: ${user_id}, Total in DB: ${totalInDb[0].count}, Others in DB: ${othersInDb[0].count}`)
-        console.log(`[GET_ALL] myRows: ${myRows.length}, sharedRows: ${sharedRows.length}`)
-        
-        const myRowOwners = [...new Set(myRows.map(r => r.user_id))]
-        console.log(`[GET_ALL] Unique owners in myRows: ${JSON.stringify(myRowOwners)}`)
-        const mixedRows = myRows.filter(r => r.user_id !== user_id)
-        if (mixedRows.length > 0) {
-            console.log(`[GET_ALL] SUCCESS: Found ${mixedRows.length} tasks in myRows created by others!`)
-        } else {
-            console.log(`[GET_ALL] WARNING: No tasks by others found in myRows recursive tree.`)
-        }
-
         const map = new Map()
         myRows.forEach(r => map.set(r.id, { ...r, contributors: sharesMap[r.id] || [] }))
         sharedRows.forEach(r => map.set(r.id, { ...r, contributors: sharesMap[r.id] || [] }))
-        console.log(`[GET_ALL] Final Map size: ${map.size}`)
 
         res.json({ message: "success", data: Array.from(map.values()) })
     } catch (err) {
