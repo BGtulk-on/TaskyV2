@@ -10,7 +10,7 @@ Tasky is a professional task management application designed for hierarchical or
 - Real-time Collaboration: Share tasks with other users and manage contributors.
 - User Profiles: Customizable avatars and secure account management.
 - Advanced Preferences: Granular control over sorting, task behavior, and UI interactions.
-- Glassmorphism UI: Modern and responsive design with smooth transitions.
+- UI: Modern and responsive design with smooth transitions.
 
 
 ## Live Demo
